@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, Mail, Save, AlertCircle, Eye, Shuffle } from 'lucide-react';
-import { profileService, classService } from '../../services/databaseService';
-import type { UserProfile } from '../../contexts/AuthContext';
-import type { Class } from '../../services/databaseService';
+import { profileService, classService } from '../../services/railwayDatabaseService';
+import type { UserProfile } from '../../contexts/BetterAuthContext';
+import type { Class } from '../../services/railwayDatabaseService';
 
 interface StudentModalProps {
   isOpen: boolean;

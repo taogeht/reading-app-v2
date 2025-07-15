@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, BookOpen, Users, Trash2, Edit, X } from 'lucide-react';
-import { assignmentService, recordingService } from '../services/databaseService';
-import { useAuth } from '../contexts/AuthContext';
+import { assignmentService, recordingService } from '../services/railwayDatabaseService';
+import { useAuth } from '../contexts/BetterAuthContext';
 
 interface Assignment {
   id: string;

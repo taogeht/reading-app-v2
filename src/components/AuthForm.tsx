@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/BetterAuthContext';
 import { TeacherLogin } from './TeacherLogin';
 
 interface AuthFormProps {

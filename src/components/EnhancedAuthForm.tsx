@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, AtSign, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/BetterAuthContext';
+// import { supabase } from '../lib/supabase'; // TODO: Replace with BetterAuth username auth
 
 interface EnhancedAuthFormProps {
   onSuccess?: () => void;
@@ -23,30 +23,16 @@ export const EnhancedAuthForm: React.FC<EnhancedAuthFormProps> = ({ onSuccess })
   };
 
   const handleUsernameLogin = async (username: string, password: string) => {
-    const { data, error } = await supabase.rpc('authenticate_with_username', {
-      p_username: username,
-      p_password: password
-    });
-
-    if (error || !data.success) {
-      throw new Error(data?.error || 'Username authentication failed');
-    }
-
-    // For username login, we need to create a temporary session
-    // since Supabase Auth expects email-based authentication
-    const fakeEmail = `${username}@teacherlogin.internal`;
+    // TODO: Implement username-based login with BetterAuth
+    // For now, assume username is email format or convert to email
+    const email = username.includes('@') ? username : `${username}@teacherlogin.internal`;
     
-    // Try to sign in with the fake email (this will work if the account exists)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
-      password: password
-    });
-
-    if (signInError) {
-      throw new Error('Authentication failed');
+    const { error } = await signIn(email, password);
+    if (error) {
+      throw new Error(error.message || 'Authentication failed');
     }
-
-    return data;
+    
+    return { success: true };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, LogOut, Settings, GraduationCap, BookOpen, Shield } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/BetterAuthContext';
 
 export const UserProfile: React.FC = () => {
   const { user, profile, signOut } = useAuth();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { query } from '../lib/database';
 
 interface TeacherAccount {
   id: string;
@@ -22,32 +22,16 @@ export const DebugTeacherAccounts: React.FC = () => {
     try {
       console.log('🔍 Fetching teacher accounts for debugging...');
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, email, full_name, is_active')
-        .eq('role', 'teacher')
-        .order('full_name');
+      const result = await query(
+        'SELECT id, username, email, full_name FROM profiles WHERE role = $1 ORDER BY full_name',
+        ['teacher']
+      );
 
-      if (error) {
-        console.error('❌ Error fetching teachers:', error);
-        setError(`Error: ${error.message}`);
-      } else {
-        console.log('✅ Found teachers:', data);
-        setTeachers(data || []);
-        
-        // Additional debugging: Check if these users exist in Supabase Auth
-        for (const teacher of data || []) {
-          console.log(`🔍 Checking auth for ${teacher.username} (${teacher.email})...`);
-          
-          // Try to get user info from auth (this won't work with client, but will show the attempt)
-          try {
-            const { data: authUser, error: authError } = await supabase.auth.getUser();
-            console.log('Current auth user:', authUser);
-          } catch (authErr) {
-            console.log('Auth check failed (expected):', authErr);
-          }
-        }
-      }
+      console.log('✅ Found teachers:', result.rows);
+      setTeachers(result.rows.map(row => ({
+        ...row,
+        is_active: true // Default to active since we don't have this field in our schema
+      })));
     } catch (err) {
       console.error('💥 Unexpected error:', err);
       setError('Unexpected error occurred');

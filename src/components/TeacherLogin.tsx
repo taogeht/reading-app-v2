@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff, GraduationCap } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/BetterAuthContext';
 
 interface TeacherLoginProps {
   onSuccess?: () => void;

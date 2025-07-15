@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Users, FileText, Play, Pause, Download, Filter, Search, RefreshCw, Calendar, Copy, ExternalLink, Check, Archive, Trash2, RotateCcw, Eye, BarChart3, Clock, Star } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/BetterAuthContext';
 import { RecordingUploadService, RecordingSubmission } from '../services/RecordingUploadService';
 import { AssignmentManager } from './AssignmentManager';
 import { FeedbackData } from '../types';

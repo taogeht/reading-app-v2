@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle, FileText, Users } from 'lucide-react';
-import { profileService, classService } from '../../services/databaseService';
-import type { Class } from '../../services/databaseService';
+import { profileService, classService } from '../../services/railwayDatabaseService';
+import type { Class } from '../../services/railwayDatabaseService';
 
 interface BulkImportModalProps {
   isOpen: boolean;

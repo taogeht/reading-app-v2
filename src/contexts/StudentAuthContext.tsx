@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+// import { supabase } from '../lib/supabase'; // TODO: Migrate student visual auth to Railway/BetterAuth
 
 // Types for the new authentication system
 export interface VisualPassword {

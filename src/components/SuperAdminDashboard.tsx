@@ -18,15 +18,15 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { classService, profileService, assignmentService, recordingService } from '../services/databaseService';
+import { useAuth } from '../contexts/BetterAuthContext';
+import { classService, profileService, assignmentService, recordingService } from '../services/railwayDatabaseService';
 import { TeacherModal } from './modals/TeacherModal';
 import { StudentModal } from './modals/StudentModal';
 import { ClassModal } from './modals/ClassModal';
 import { BulkImportModal } from './modals/BulkImportModal';
 import { ClassRosterManager } from './ClassRosterManager';
-import type { Class, Assignment, Recording } from '../services/databaseService';
-import type { UserProfile } from '../contexts/AuthContext';
+import type { Class, Assignment, Recording } from '../services/railwayDatabaseService';
+import type { UserProfile } from '../contexts/BetterAuthContext';
 
 interface DashboardStats {
   totalTeachers: number;

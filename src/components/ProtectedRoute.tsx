@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth, UserRole } from '../contexts/AuthContext';
+import { useAuth, UserRole } from '../contexts/BetterAuthContext';
 import { AuthForm } from './AuthForm';
 import { TeacherLogin } from './TeacherLogin';
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { BookOpen, Sparkles, AlertCircle } from 'lucide-react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BetterAuthProvider as AuthProvider, useAuth } from './contexts/BetterAuthContext';
 import { StudentAuthProvider } from './contexts/StudentAuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { UserProfile } from './components/UserProfile';
