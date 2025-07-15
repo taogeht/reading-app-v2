@@ -1,0 +1,181 @@
+# Docker Compose for unRAID Whisper Server Deployment
+# Reading Recording Practice - Speech Analysis Service
+
+version: '3.8'
+
+services:
+  whisper-server:
+    build: .
+    container_name: whisper-speech-server
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - "8000:8000"
+    
+    # Environment variables
+    environment:
+      - WHISPER_MODEL=base  # Options: tiny, base, small, medium, large
+      - PYTHONUNBUFFERED=1
+      - TZ=America/New_York  # Adjust to your timezone
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    
+    # Volume mounts for persistence and performance
+    volumes:
+      # Model cache (persistent storage to avoid re-downloading models)
+      - whisper_models:/root/.cache/whisper
+      
+      # Logs directory (accessible from unRAID)
+      - ./logs:/app/logs
+      
+      # Temporary uploads (can be tmpfs for performance)
+      - /tmp/whisper-uploads:/app/uploads
+    
+    # Resource limits (adjust based on your unRAID server)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Limit to 2 CPU cores
+          memory: 4G       # 4GB RAM limit
+        reservations:
+          cpus: '1.0'      # Reserve 1 CPU core
+          memory: 2G       # Reserve 2GB RAM
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    
+    # Network settings
+    networks:
+      - whisper-network
+    
+    depends_on:
+      - redis
+
+  # Celery Worker for background processing
+  whisper-worker:
+    build: .
+    container_name: whisper-celery-worker
+    restart: unless-stopped
+    
+    # Worker command
+    command: sh -c "celery -A celery_app worker --loglevel=info --concurrency=2 --queues=audio_processing,batch_processing,default"
+    
+    # Environment variables
+    environment:
+      - WHISPER_MODEL=base
+      - PYTHONUNBUFFERED=1
+      - TZ=America/New_York
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    
+    # Volume mounts (same as main server)
+    volumes:
+      - whisper_models:/root/.cache/whisper
+      - ./logs:/app/logs
+      - /tmp/whisper-uploads:/app/uploads
+    
+    # Resource limits (adjust for worker needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'      # Workers need more CPU for processing
+          memory: 6G       # More memory for model loading
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+    
+    # Health check for worker
+    healthcheck:
+      test: ["CMD", "celery", "-A", "celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - whisper-network
+    
+    depends_on:
+      - redis
+
+  # Optional: Celery Beat for scheduled tasks
+  whisper-beat:
+    build: .
+    container_name: whisper-celery-beat
+    restart: unless-stopped
+    
+    # Beat scheduler command
+    command: sh -c "celery -A celery_app beat --loglevel=info"
+    
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=America/New_York
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    
+    # Minimal volumes needed
+    volumes:
+      - ./logs:/app/logs
+    
+    # Minimal resources for scheduler
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    
+    networks:
+      - whisper-network
+    
+    depends_on:
+      - redis
+
+  # Redis for job queue implementation
+  redis:
+    image: redis:7-alpine
+    container_name: whisper-redis
+    restart: unless-stopped
+    
+    ports:
+      - "6379:6379"
+    
+    volumes:
+      - whisper_redis_data:/data
+    
+    # Redis configuration
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    
+    networks:
+      - whisper-network
+
+# Named volumes for persistence
+volumes:
+  whisper_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/user/appdata/whisper/models  # Adjust path for your unRAID
+  
+  whisper_redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/user/appdata/whisper/redis   # Adjust path for your unRAID
+
+# Network for service communication
+networks:
+  whisper-network:
+    driver: bridge

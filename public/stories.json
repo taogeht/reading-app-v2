@@ -1,0 +1,90 @@
+[
+{
+  "id": "story-001",
+  "title": "The Little Red Hen",
+  "text": "Once upon a time, a Little Red Hen found a grain of wheat. \"Who will help me plant this wheat?\" she clucked. The lazy Dog, the sleepy Cat, and the greedy Pig all refused. \"Not I,\" they said.\n\nSo, the Little Red Hen planted it herself. When the wheat grew tall, she asked, \"Who will help me cut this wheat?\" Again, her friends refused. \"Not I,\" they chorused.\n\nShe cut the wheat alone. Next, she asked, \"Who will help me take this wheat to the mill?\" The Dog, Cat, and Pig once more declined. \"Not I,\" they yawned.\n\nThe Little Red Hen went to the mill and brought back the flour. \"Who will help me bake the bread?\" she inquired. Her friends, predictable as ever, replied, \"Not I.\"\n\nShe baked the bread by herself. Finally, a delicious aroma filled the air. \"Who will help me eat this bread?\" she asked. This time, the Dog, Cat, and Pig eagerly shouted, \"I will!\"\n\n\"No!\" declared the Little Red Hen. \"I planted it, I cut it, I milled it, and I baked it. So, I will eat it myself.\" And she did, teaching her friends a valuable lesson about hard work and reward.",
+  "gradeLevel": 2,
+  "subject": "Character Education",
+  "difficulty": "intermediate",
+  "wordCount": 128,
+  "themes": ["Hard Work", "Responsibility", "Consequences"],
+  "readingLevel": "2nd Grade"
+},
+  {
+    "id": "story-002",
+    "title": "The Boy Who Cried Wolf",
+    "text": "There once was a shepherd boy who watched his flock of sheep near a village. He was often bored and decided to have some fun. He ran toward the village shouting, 'Wolf! Wolf! A wolf is attacking my sheep!' The villagers came running to help, but there was no wolf. The boy laughed at the trick he had played. A few days later, he did the same thing again. 'Wolf! Wolf!' he cried. Again, the villagers came running, and again there was no wolf. Then one day, a real wolf came and began attacking the sheep. The boy cried out for help, but this time no one came. They thought he was playing another trick. The wolf scattered the flock and the boy learned that liars are not believed even when they tell the truth.",
+    "gradeLevel": 3,
+    "subject": "Character Education",
+    "difficulty": "intermediate",
+    "wordCount": 145,
+    "themes": ["Honesty", "Trust", "Consequences"],
+    "readingLevel": "3rd Grade"
+  },
+  {
+    "id": "story-003",
+    "title": "The Tortoise and the Hare",
+    "text": "A hare was making fun of a tortoise for being so slow. 'Do you ever get anywhere?' he asked with a mocking laugh. 'Yes,' replied the tortoise, 'and I get there sooner than you think. I'll run you a race and prove it.' The hare was much amused at the idea of running a race with the tortoise, but for the fun of the thing he agreed. The fox was chosen to act as judge and to decide who won. They started off, and the hare darted almost out of sight at once. Soon he was so far ahead that he thought he might as well have a rest. So down he lay and fell fast asleep. The tortoise never stopped but went on with slow, steady steps straight to the end of the course. When the hare awoke, he saw the tortoise near the finish line and ran as fast as he could. But it was too late. The tortoise had won the race. Slow and steady wins the race.",
+    "gradeLevel": 3,
+    "subject": "Character Education",
+    "difficulty": "advanced",
+    "wordCount": 172,
+    "themes": ["Perseverance", "Humility", "Determination"],
+    "readingLevel": "3rd Grade"
+  },
+  {
+    "id": "story-004",
+    "title": "My Fast Car",
+    "text": "My car goes vroom! It's red like fire. I race with Daddy and we have fun. Mommy says be careful. I say okay! Cars are fast but safety comes first.",
+    "gradeLevel": 1,
+    "subject": "Family Life",
+    "difficulty": "beginner",
+    "wordCount": 28,
+    "themes": ["Family", "Safety", "Fun"],
+    "readingLevel": "1st Grade"
+  },
+  {
+    "id": "story-005",
+    "title": "The Brave Little Mouse",
+    "text": "Lucy the mouse lived in a small hole behind the kitchen wall. Every night, she would sneak out to find crumbs. One day, she heard crying from the living room. A little girl had lost her favorite toy under the heavy couch. Lucy wanted to help, but she was scared of being seen. She took a deep breath and ran under the couch. There was the toy! Lucy pushed and pushed until the toy rolled out. The little girl was so happy! From that day on, Lucy felt proud of being helpful.",
+    "gradeLevel": 2,
+    "subject": "Character Education",
+    "difficulty": "intermediate",
+    "wordCount": 95,
+    "themes": ["Courage", "Helping Others", "Kindness"],
+    "readingLevel": "2nd Grade"
+  },
+  {
+    "id": "story-006",
+    "title": "The Magic Garden",
+    "text": "Emma found a packet of mystery seeds in her grandmother's shed. She planted them in a small corner of the garden and watered them every day. After one week, tiny green shoots appeared. After two weeks, the plants had grown tall with big leaves. After three weeks, beautiful flowers bloomed in every color of the rainbow! Emma's grandmother smiled and said, 'Those are friendship flowers. They bloom brightest when you care for them with love.' Emma learned that good things take time to grow.",
+    "gradeLevel": 2,
+    "subject": "Science & Nature",
+    "difficulty": "intermediate",
+    "wordCount": 89,
+    "themes": ["Patience", "Growth", "Nature"],
+    "readingLevel": "2nd Grade"
+  },
+  {
+    "id": "story-007",
+    "title": "The Community Helper",
+    "text": "Officer Martinez walks through the neighborhood every morning. She waves to the children going to school and helps people cross busy streets. When Mrs. Chen's cat got stuck in a tree, Officer Martinez called the fire department. When young Tommy lost his backpack, she helped him retrace his steps until they found it by the playground. The neighborhood feels safe and happy because Officer Martinez cares about everyone.",
+    "gradeLevel": 1,
+    "subject": "Community Helpers",
+    "difficulty": "beginner",
+    "wordCount": 72,
+    "themes": ["Community", "Helping", "Safety"],
+    "readingLevel": "1st Grade"
+  },
+  {
+    "id": "story-008",
+    "title": "The Weather Station",
+    "text": "Ms. Johnson's third-grade class built a weather station in their school garden. Every day, students took turns measuring rainfall, checking the thermometer, and recording wind direction. They learned that clouds can tell us if rain is coming. Dark, heavy clouds usually mean storms, while white, fluffy clouds mean nice weather. After tracking weather for a whole month, the students could predict if they needed umbrellas or if it would be a good day for outdoor recess. Science helped them understand the world around them.",
+    "gradeLevel": 3,
+    "subject": "Science & Weather",
+    "difficulty": "advanced",
+    "wordCount": 98,
+    "themes": ["Science", "Observation", "Weather"],
+    "readingLevel": "3rd Grade"
+  }
+]

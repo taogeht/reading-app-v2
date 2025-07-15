@@ -1,0 +1,330 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Remove Custom Story Input and Setup Curated Story Library",
+        "description": "Remove the custom story input functionality and replace it with a curated, pre-approved educational story library organized by grade level and subject",
+        "details": "Modify StoryManager.tsx to remove custom story functionality. Create a static JSON file containing pre-approved educational stories organized by grade level (1-3+), subject, and difficulty. Update the story selection interface to display only curated content. Implement filtering by grade level and subject. Add story metadata including reading level, word count, and educational themes.",
+        "testStrategy": "Verify custom story input is completely removed. Test story filtering by grade level and subject. Confirm all stories load correctly with proper metadata display. Validate story organization matches educational standards.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Static Audio File Library System",
+        "description": "Replace API-based TTS with a static audio file serving system that supports multiple voice options per story",
+        "details": "Create file structure under /public/audio-library/ organized by grade level and story. Support multiple voice options (usa-female-bella, usa-male-josh, uk-female-charlotte, uk-male-daniel) per story. Modify TTSPlayer.tsx to load from static files instead of API calls. Implement fallback to API if static file missing. Add manifest.json files for each story containing available voice options and metadata. Create AudioLibraryService.ts to manage file retrieval and availability checking.",
+        "testStrategy": "Test audio loading for all voice variations. Verify fallback to API when static files missing. Confirm sub-second loading times for cached files. Test audio playback across different browsers and devices.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Setup User Authentication and Authorization System",
+        "description": "Implement role-based authentication system supporting teachers, students, and administrators with appropriate access controls",
+        "details": "Create authentication system with JWT tokens. Implement role-based access control (teacher, student, admin). Create login/logout components. Set up protected routes based on user roles. Implement session management and token refresh. Create user context provider for global state management. Add password hashing with bcrypt for security.",
+        "testStrategy": "Test login/logout functionality for all user roles. Verify protected routes redirect unauthorized users. Test session persistence and token refresh. Confirm password security with hashing validation.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Create Database Schema and Models",
+        "description": "Implement PostgreSQL database schema for students, teachers, classes, assignments, and recordings with proper relationships",
+        "details": "Create database tables: students, teachers, classes, assignments, recordings. Implement proper foreign key relationships and constraints. Add UUID primary keys for all tables. Create database migration scripts. Set up connection pooling and environment-based configuration. Add indexes for performance on frequently queried fields. Implement soft delete functionality where appropriate.",
+        "testStrategy": "Test database migrations run successfully. Verify all table relationships and constraints work correctly. Test CRUD operations for all entities. Confirm UUID generation and foreign key integrity.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Modify Recording System for Upload Workflow",
+        "description": "Transform the existing real-time analysis recording system into an upload-based workflow with preview and submission",
+        "details": "Modify VoiceRecorder.tsx to remove instant feedback functionality. Implement Record → Preview → Submit workflow. Add file upload capability using multipart/form-data. Create recording preview with standard audio controls. Add submission confirmation messages. Remove FeedbackDisplay.tsx component. Implement RecordingUploadService.ts for handling file uploads with progress tracking and validation.",
+        "testStrategy": "Test complete recording workflow from record to submission. Verify preview functionality works correctly. Test file upload with various audio formats. Confirm submission confirmation displays properly. Test error handling for failed uploads.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Build Teacher Dashboard and Assignment Management",
+        "description": "Create comprehensive teacher dashboard for managing classes, creating assignments, and reviewing student submissions",
+        "details": "Create TeacherDashboard.tsx with class overview, assignment management, and student progress tracking. Implement assignment creation with story selection, deadline setting, and student access controls. Add bulk assignment creation for multiple classes. Create student recording review interface with playback controls. Implement feedback and grading system. Add filtering and sorting for recordings by class, assignment, and submission date.",
+        "testStrategy": "Test assignment creation and student access. Verify teacher can review all student recordings. Test feedback and grading functionality. Confirm bulk operations work correctly. Test dashboard performance with multiple classes and assignments.",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          5
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement File Organization and Storage System",
+        "description": "Create organized file storage system for student recordings and audio library with proper metadata management",
+        "details": "Create directory structure: /uploads/recordings/{school-year}/{school}/{grade}/{class}/{assignment}/{student}/. Implement automatic folder creation and file organization. Add metadata.json files for each recording containing student info, assignment details, and submission timestamp. Create file cleanup and archival procedures. Implement storage monitoring and capacity alerts. Add file compression for long-term storage.",
+        "testStrategy": "Test automatic directory creation for new recordings. Verify metadata files generate correctly. Test file organization across multiple students and assignments. Confirm storage monitoring reports accurate usage.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and implement hierarchical directory structure",
+            "description": "Create the organized directory structure /uploads/recordings/{school-year}/{school}/{grade}/{class}/{assignment}/{student}/ with automatic folder creation functionality",
+            "dependencies": [],
+            "details": "Implement utility functions to create nested directory structure based on student and assignment metadata. Handle directory permissions, validate path components, and ensure consistent naming conventions. Include error handling for file system operations and path validation.",
+            "status": "done",
+            "testStrategy": "Unit tests for directory creation functions, integration tests for full path creation with various input combinations, file system permission verification tests"
+          },
+          {
+            "id": 2,
+            "title": "Create metadata management system",
+            "description": "Implement metadata.json file creation and management for each recording containing student info, assignment details, and submission timestamp",
+            "dependencies": [
+              1
+            ],
+            "details": "Design metadata schema including student ID, name, assignment details, submission timestamp, file information, and recording quality metrics. Implement functions to generate, read, update, and validate metadata files. Include version control for metadata schema changes.",
+            "status": "done",
+            "testStrategy": "Schema validation tests, metadata CRUD operation tests, timestamp accuracy verification, concurrent access handling tests"
+          },
+          {
+            "id": 3,
+            "title": "Implement file organization and move operations",
+            "description": "Create system to automatically organize uploaded recordings into the correct directory structure based on metadata",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement file processing pipeline that reads uploaded recordings, extracts or receives metadata, creates appropriate directory structure, moves files to correct locations, and generates metadata files. Include atomic operations to prevent data loss during moves.",
+            "status": "done",
+            "testStrategy": "End-to-end file organization tests, rollback mechanism tests, concurrent upload handling, file integrity verification after moves"
+          },
+          {
+            "id": 4,
+            "title": "Develop storage monitoring and capacity management",
+            "description": "Implement storage monitoring system with capacity alerts and usage analytics",
+            "dependencies": [],
+            "details": "Create monitoring service to track disk usage, generate alerts when storage thresholds are reached, provide usage analytics by school/grade/class, and implement automated cleanup suggestions. Include dashboard for storage metrics and historical usage trends.",
+            "status": "done",
+            "testStrategy": "Storage calculation accuracy tests, alert trigger verification, performance tests for large directory scanning, monitoring service reliability tests"
+          },
+          {
+            "id": 5,
+            "title": "Create file compression and archival system",
+            "description": "Implement file compression for long-term storage and archival procedures for old recordings",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Implement compression algorithms suitable for audio files, create archival policies based on age and access patterns, design retrieval system for archived files, and implement automated archival processes. Include compression ratio optimization and quality preservation settings.",
+            "status": "done",
+            "testStrategy": "Compression quality and ratio tests, archival and retrieval workflow tests, performance benchmarks for compression operations, data integrity verification after compression/decompression cycles"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Integrate Local Whisper Server for Speech Analysis",
+        "description": "Set up local Whisper server for speech-to-text processing and automated analysis of student recordings",
+        "details": "Set up Docker container with Whisper API on school server. Create background job queue for processing recordings. Implement speech-to-text transcription with accuracy scoring. Add reading speed calculation (words per minute). Implement pause detection and fluency assessment. Create analysis result storage in JSONB format. Add automated flagging for recordings requiring teacher attention.",
+        "testStrategy": "Test Whisper server deployment and API connectivity. Verify speech-to-text accuracy across different student voices. Test background job processing and queue management. Confirm analysis results integrate properly with teacher dashboard.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up Docker Whisper Server Infrastructure",
+            "description": "Create and configure Docker container with Whisper API server on school infrastructure",
+            "dependencies": [],
+            "details": "Install Docker on school server, create Dockerfile with OpenAI Whisper, configure API endpoints for speech-to-text processing, set up health checks and logging, ensure proper resource allocation for audio processing workloads",
+            "status": "done",
+            "testStrategy": "Test Docker container startup, verify API endpoints respond correctly, test with sample audio files, validate resource usage and performance benchmarks"
+          },
+          {
+            "id": 2,
+            "title": "Implement Background Job Queue System",
+            "description": "Create asynchronous job processing system for handling multiple audio recordings simultaneously",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up Redis or similar queue system, create job workers for audio processing, implement retry logic for failed jobs, add job status tracking and progress monitoring, configure concurrent processing limits",
+            "status": "done",
+            "testStrategy": "Test job queuing and processing with multiple audio files, verify retry mechanisms work, test concurrent processing limits, validate job status updates"
+          },
+          {
+            "id": 3,
+            "title": "Build Speech-to-Text Transcription Service",
+            "description": "Integrate Whisper API calls with accuracy scoring and transcription quality assessment",
+            "dependencies": [
+              2
+            ],
+            "details": "Create service to send audio to Whisper server, implement confidence scoring based on Whisper output, add word-level timestamp extraction, implement transcription quality metrics, handle various audio formats and quality levels\n<info added on 2025-07-03T05:35:50.095Z>\nCOMPLETED: Successfully integrated local Whisper server for speech-to-text transcription. Implementation includes: 1) Created WhisperService with full API integration supporting health checks, transcription, and reading analysis. 2) Implemented confidence scoring, word-level timestamp extraction, and transcription quality metrics. 3) Added intelligent fallback system that tries Whisper first, then falls back to Google Speech API if unavailable. 4) Created configService for runtime configuration with environment variable support. 5) Added SpeechServiceStatus component for UI service monitoring. 6) Updated audioAnalysis utility to support both services seamlessly. 7) Added comprehensive error handling and timeout management. 8) Configured environment variables for VITE_WHISPER_SERVER_URL, VITE_PREFERRED_SPEECH_SERVICE settings. The system now automatically detects and uses the best available speech service while providing detailed analysis including words per minute, fluency scores, pause detection, and accuracy assessment.\n</info added on 2025-07-03T05:35:50.095Z>",
+            "status": "done",
+            "testStrategy": "Test transcription accuracy with known text recordings, verify confidence scoring algorithms, test with different audio qualities and formats, validate timestamp accuracy"
+          },
+          {
+            "id": 4,
+            "title": "Develop Reading Analysis Algorithms",
+            "description": "Implement reading speed calculation, pause detection, and fluency assessment from transcribed audio",
+            "dependencies": [
+              3
+            ],
+            "details": "Calculate words per minute from timestamps, implement pause detection using silence analysis, create fluency scoring based on reading rhythm and hesitations, add pronunciation assessment, implement difficulty-based reading level analysis",
+            "status": "done",
+            "testStrategy": "Test WPM calculations against manual timing, verify pause detection accuracy, validate fluency scoring with teacher assessments, test across different reading levels and student ages"
+          },
+          {
+            "id": 5,
+            "title": "Create Analysis Storage and Alert System",
+            "description": "Store analysis results in JSONB format and implement automated flagging for teacher attention",
+            "dependencies": [
+              4
+            ],
+            "details": "Design JSONB schema for analysis results, implement database storage with indexing, create automated flagging rules for concerning patterns, add teacher notification system, implement historical analysis tracking and progress monitoring",
+            "status": "done",
+            "testStrategy": "Test JSONB storage and retrieval performance, verify flagging rules trigger correctly, test teacher notification delivery, validate historical data analysis and reporting features"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Create Bulk Audio Generation Tools",
+        "description": "Build tools for teachers to generate TTS audio files in bulk for new stories and voice variations",
+        "details": "Create bulk audio generation interface in teacher dashboard. Implement queue system for processing multiple TTS requests. Add progress tracking for generation jobs. Support multiple voice options per story batch. Create validation for generated audio files. Implement automatic manifest.json updates. Add cost estimation for API usage before generation.",
+        "testStrategy": "Test bulk generation with multiple stories and voices. Verify progress tracking updates correctly. Test queue system handles concurrent requests. Confirm generated files integrate properly with audio library system.",
+        "priority": "low",
+        "dependencies": [
+          2,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Analytics and Progress Tracking",
+        "description": "Build comprehensive analytics system for tracking student progress, class performance, and generating educational reports",
+        "details": "Create student progress tracking over time with reading improvement metrics. Implement class-wide performance analytics with visualization charts. Add comparison tools for before/after assessment. Create export functionality for gradebook integration. Build automated reporting for parent-teacher conferences. Add administrative tools for school-wide analytics. Implement data visualization using Chart.js or similar library.",
+        "testStrategy": "Test progress tracking accurately reflects student improvement. Verify analytics visualizations display correctly. Test export functionality with common gradebook formats. Confirm administrative reports aggregate data properly across multiple classes.",
+        "priority": "low",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Build Super Admin Management Interface",
+        "description": "Create comprehensive super admin dashboard with full CRUD operations for managing teachers, classes, and students across the platform.",
+        "details": "Create SuperAdminDashboard.tsx with tabbed interface for teachers, classes, and students management. Implement user management with create/edit/delete operations using modal forms. Add bulk student import functionality with CSV parsing and validation. Create visual password assignment interface with generated passwords display. Build class-student relationship management with drag-drop assignment. Implement data validation for email formats, duplicate prevention, and required fields. Add search, filtering, and pagination for large datasets. Create role-based permissions system with teacher/student role assignment. Implement audit logging for all administrative actions. Add bulk operations for user activation/deactivation. Create data export functionality for user lists and class rosters.",
+        "testStrategy": "Test CRUD operations for all user types (teachers, students). Verify modal forms validate data correctly and handle errors. Test bulk import with various CSV formats and edge cases. Confirm password generation displays securely and copies correctly. Test class-student assignment and removal functionality. Verify search and filtering work across all data types. Test role assignments reflect properly in user permissions. Confirm audit logging captures all administrative actions accurately.",
+        "status": "done",
+        "dependencies": [
+          4,
+          5
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create SuperAdminDashboard Component Structure",
+            "description": "Build the main dashboard component with tabbed interface for teachers, classes, and students management sections.",
+            "dependencies": [],
+            "details": "Create SuperAdminDashboard.tsx with React component structure including tab navigation for three main sections: Teachers, Classes, and Students. Implement responsive layout with proper styling and state management for active tab switching. Include header with admin user info and logout functionality.",
+            "status": "done",
+            "testStrategy": "Unit tests for component rendering, tab switching functionality, and responsive design across different screen sizes."
+          },
+          {
+            "id": 2,
+            "title": "Implement User Management CRUD Operations",
+            "description": "Build create, read, update, and delete operations for teachers and students with modal forms and validation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create modal components for user creation and editing with form validation for email formats, required fields, and duplicate prevention. Implement API integration for CRUD operations with proper error handling and success feedback. Add role-based user creation (teacher/student) with appropriate field sets.",
+            "status": "done",
+            "testStrategy": "Integration tests for API calls, form validation tests, and user interaction tests for modal functionality."
+          },
+          {
+            "id": 3,
+            "title": "Build Bulk Operations and CSV Import",
+            "description": "Implement bulk student import functionality with CSV parsing, validation, and batch user operations.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create CSV file upload component with drag-drop interface and file validation. Implement CSV parsing logic with data validation and duplicate detection. Build bulk operations for user activation/deactivation and password generation. Add progress indicators and error reporting for batch operations.",
+            "status": "done",
+            "testStrategy": "Unit tests for CSV parsing logic, validation tests for file formats and data integrity, and integration tests for bulk operations."
+          },
+          {
+            "id": 4,
+            "title": "Implement Class-Student Management System",
+            "description": "Build class management with student assignment capabilities and visual relationship management.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create class creation and editing forms with validation. Implement drag-drop interface for assigning students to classes. Build visual class roster management with student list display and bulk assignment capabilities. Add class capacity management and enrollment limits.",
+            "status": "done",
+            "testStrategy": "Integration tests for drag-drop functionality, class assignment logic tests, and user interface tests for class management workflows."
+          },
+          {
+            "id": 5,
+            "title": "Add Search, Filtering, and Data Export Features",
+            "description": "Implement comprehensive search, filtering, pagination, and data export functionality across all management sections.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Build search components with real-time filtering for users and classes. Implement pagination for large datasets with configurable page sizes. Create data export functionality for user lists, class rosters, and audit logs in CSV/Excel formats. Add advanced filtering options by role, status, and date ranges.",
+            "status": "done",
+            "testStrategy": "Performance tests for large dataset handling, search functionality tests, and export format validation tests."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Fix and Test Assignments Functionality",
+        "description": "Successfully resolved all critical assignment workflow issues including student visibility, date handling, and replaced mock data with real database integration. All assignment features are now fully functional across teacher and student interfaces.",
+        "status": "done",
+        "dependencies": [
+          4,
+          11
+        ],
+        "priority": "medium",
+        "details": "COMPLETED: Fixed all three critical assignment issues: 1) ✅ Assignment visibility resolved - teachers can now create assignments that immediately appear on enrolled students' dashboards through proper assignmentService integration. 2) ✅ Date reset issue fixed - removed hardcoded Dec 15, 2024 date and implemented proper date initialization using current date + 1 day. 3) ✅ Comprehensive assignment workflow analysis completed with full database integration replacing all mock data. TECHNICAL IMPLEMENTATION: Replaced mock data with real assignmentService calls in both AssignmentManager.tsx and StudentAssignments.tsx. Added proper error handling, logging, and user feedback. Assignments are automatically published when created for immediate student visibility. All assignment CRUD operations now use real database calls with proper class-student relationship handling.",
+        "testStrategy": "COMPLETED: Comprehensive testing verified all assignment functionality: ✅ Assignment creation working with proper date defaults, ✅ Teacher-created assignments immediately visible to enrolled students, ✅ Assignment publishing and deletion functioning correctly, ✅ End-to-end workflow validated (teacher creates → student sees assignment), ✅ Database integration confirmed with no remaining mock data dependencies. All edge cases tested including multiple classes, assignment scheduling, and proper filtering based on class enrollment.",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-27T12:30:09.353Z",
+      "updated": "2025-07-03T05:55:54.364Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

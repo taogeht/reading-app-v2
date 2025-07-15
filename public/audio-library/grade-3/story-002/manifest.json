@@ -1,0 +1,41 @@
+{
+  "storyId": "story-002",
+  "title": "The Boy Who Cried Wolf",
+  "gradeLevel": 3,
+  "voices": [
+    {
+      "id": "usa-female-bella",
+      "name": "Bella",
+      "accent": "USA",
+      "gender": "Female",
+      "fileName": "usa-female-bella.mp3",
+      "available": false
+    },
+    {
+      "id": "usa-male-josh",
+      "name": "Josh",
+      "accent": "USA",
+      "gender": "Male",
+      "fileName": "usa-male-josh.mp3",
+      "available": false
+    },
+    {
+      "id": "uk-female-charlotte",
+      "name": "Charlotte",
+      "accent": "UK",
+      "gender": "Female",
+      "fileName": "uk-female-charlotte.mp3",
+      "available": false
+    },
+    {
+      "id": "uk-male-daniel",
+      "name": "Daniel",
+      "accent": "UK",
+      "gender": "Male",
+      "fileName": "uk-male-daniel.mp3",
+      "available": false
+    }
+  ],
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "version": "1.0.0"
+}
