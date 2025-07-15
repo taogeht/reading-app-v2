@@ -1,4 +1,6 @@
-import { query } from '../lib/database';
+// Client-safe mock version of database service
+// TODO: Replace with proper API calls to server-side database operations
+
 import { UserProfile } from '../contexts/BetterAuthContext';
 
 // Database types
@@ -54,339 +56,255 @@ export interface Recording {
   updated_at: string;
 }
 
-// =============================================================================
-// ADMIN HELPER FUNCTIONS
-// =============================================================================
-
+// Mock admin functions
 export const checkIsAdmin = async (userId: string): Promise<boolean> => {
-  try {
-    const result = await query('SELECT role FROM profiles WHERE id = $1', [userId]);
-    return result.rows[0]?.role === 'admin';
-  } catch (error) {
-    console.error('Error checking admin status:', error);
-    return false;
-  }
+  console.warn('checkIsAdmin not implemented - using mock');
+  return false;
 };
 
 export const checkIsTeacherOrAdmin = async (userId: string): Promise<boolean> => {
-  try {
-    const result = await query('SELECT role FROM profiles WHERE id = $1', [userId]);
-    const role = result.rows[0]?.role;
-    return role === 'teacher' || role === 'admin';
-  } catch (error) {
-    console.error('Error checking teacher/admin status:', error);
-    return false;
-  }
+  console.warn('checkIsTeacherOrAdmin not implemented - using mock');
+  return false;
 };
 
-// =============================================================================
-// PROFILE SERVICE
-// =============================================================================
-
+// Mock profile service
 export const profileService = {
   async getAll(): Promise<UserProfile[]> {
-    try {
-      const result = await query('SELECT * FROM profiles ORDER BY created_at DESC');
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-      throw error;
-    }
+    console.warn('profileService.getAll not implemented - using mock');
+    return [];
   },
 
   async getById(id: string): Promise<UserProfile | null> {
-    try {
-      const result = await query('SELECT * FROM profiles WHERE id = $1', [id]);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      throw error;
-    }
+    console.warn('profileService.getById not implemented - using mock');
+    return null;
   },
 
   async getByRole(role: 'student' | 'teacher' | 'admin'): Promise<UserProfile[]> {
-    try {
-      const result = await query('SELECT * FROM profiles WHERE role = $1 ORDER BY full_name', [role]);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching profiles by role:', error);
-      throw error;
-    }
+    console.warn('profileService.getByRole not implemented - using mock');
+    return [];
   },
 
   async create(profile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> {
-    try {
-      const result = await query(
-        'INSERT INTO profiles (email, username, full_name, role, class_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [profile.email, profile.username, profile.full_name, profile.role, profile.class_id]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating profile:', error);
-      throw error;
-    }
+    console.warn('profileService.create not implemented - using mock');
+    return {
+      id: 'mock-id',
+      email: profile.email,
+      username: profile.username,
+      full_name: profile.full_name,
+      role: profile.role,
+      class_id: profile.class_id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   },
 
   async update(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
-    try {
-      const setClause = Object.keys(updates)
-        .map((key, index) => `${key} = $${index + 2}`)
-        .join(', ');
-      
-      const values = [id, ...Object.values(updates)];
-      
-      const result = await query(
-        `UPDATE profiles SET ${setClause} WHERE id = $1 RETURNING *`,
-        values
-      );
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
+    console.warn('profileService.update not implemented - using mock');
+    return {
+      id,
+      email: 'mock@example.com',
+      username: 'mock',
+      full_name: 'Mock User',
+      role: 'student',
+      class_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...updates,
+    };
   },
 
   async delete(id: string): Promise<void> {
-    try {
-      await query('DELETE FROM profiles WHERE id = $1', [id]);
-    } catch (error) {
-      console.error('Error deleting profile:', error);
-      throw error;
-    }
+    console.warn('profileService.delete not implemented - using mock');
   }
 };
 
-// =============================================================================
-// CLASS SERVICE
-// =============================================================================
-
+// Mock class service
 export const classService = {
   async getAll(): Promise<Class[]> {
-    try {
-      const result = await query('SELECT * FROM classes ORDER BY created_at DESC');
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      throw error;
-    }
+    console.warn('classService.getAll not implemented - using mock');
+    return [];
   },
 
   async getById(id: string): Promise<Class | null> {
-    try {
-      const result = await query('SELECT * FROM classes WHERE id = $1', [id]);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching class:', error);
-      throw error;
-    }
+    console.warn('classService.getById not implemented - using mock');
+    return null;
   },
 
   async getByTeacher(teacherId: string): Promise<Class[]> {
-    try {
-      const result = await query('SELECT * FROM classes WHERE teacher_id = $1 ORDER BY name', [teacherId]);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching classes by teacher:', error);
-      throw error;
-    }
+    console.warn('classService.getByTeacher not implemented - using mock');
+    return [];
   },
 
   async create(classData: Omit<Class, 'id' | 'created_at' | 'updated_at'>): Promise<Class> {
-    try {
-      const result = await query(
-        'INSERT INTO classes (name, grade_level, teacher_id, school_year, description, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [classData.name, classData.grade_level, classData.teacher_id, classData.school_year, classData.description, classData.is_active]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating class:', error);
-      throw error;
-    }
+    console.warn('classService.create not implemented - using mock');
+    return {
+      id: 'mock-class-id',
+      name: classData.name,
+      grade_level: classData.grade_level,
+      teacher_id: classData.teacher_id,
+      school_year: classData.school_year,
+      description: classData.description,
+      is_active: classData.is_active,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   },
 
   async update(id: string, updates: Partial<Class>): Promise<Class> {
-    try {
-      const setClause = Object.keys(updates)
-        .map((key, index) => `${key} = $${index + 2}`)
-        .join(', ');
-      
-      const values = [id, ...Object.values(updates)];
-      
-      const result = await query(
-        `UPDATE classes SET ${setClause} WHERE id = $1 RETURNING *`,
-        values
-      );
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error updating class:', error);
-      throw error;
-    }
+    console.warn('classService.update not implemented - using mock');
+    return {
+      id,
+      name: 'Mock Class',
+      grade_level: 1,
+      teacher_id: 'mock-teacher',
+      school_year: null,
+      description: null,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...updates,
+    };
   },
 
   async delete(id: string): Promise<void> {
-    try {
-      await query('DELETE FROM classes WHERE id = $1', [id]);
-    } catch (error) {
-      console.error('Error deleting class:', error);
-      throw error;
-    }
+    console.warn('classService.delete not implemented - using mock');
   }
 };
 
-// =============================================================================
-// ASSIGNMENT SERVICE
-// =============================================================================
-
+// Mock assignment service
 export const assignmentService = {
   async getAll(): Promise<Assignment[]> {
-    try {
-      const result = await query('SELECT * FROM assignments ORDER BY created_at DESC');
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching assignments:', error);
-      throw error;
-    }
+    console.warn('assignmentService.getAll not implemented - using mock');
+    return [];
   },
 
   async getById(id: string): Promise<Assignment | null> {
-    try {
-      const result = await query('SELECT * FROM assignments WHERE id = $1', [id]);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching assignment:', error);
-      throw error;
-    }
+    console.warn('assignmentService.getById not implemented - using mock');
+    return null;
   },
 
   async getByClass(classId: string): Promise<Assignment[]> {
-    try {
-      const result = await query('SELECT * FROM assignments WHERE class_id = $1 ORDER BY created_at DESC', [classId]);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching assignments by class:', error);
-      throw error;
-    }
+    console.warn('assignmentService.getByClass not implemented - using mock');
+    return [];
   },
 
   async create(assignment: Omit<Assignment, 'id' | 'created_at' | 'updated_at'>): Promise<Assignment> {
-    try {
-      const result = await query(
-        'INSERT INTO assignments (title, description, story_id, story_title, class_id, teacher_id, due_date, instructions, max_attempts, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-        [assignment.title, assignment.description, assignment.story_id, assignment.story_title, assignment.class_id, assignment.teacher_id, assignment.due_date, assignment.instructions, assignment.max_attempts, assignment.is_published]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating assignment:', error);
-      throw error;
-    }
+    console.warn('assignmentService.create not implemented - using mock');
+    return {
+      id: 'mock-assignment-id',
+      title: assignment.title,
+      description: assignment.description,
+      story_id: assignment.story_id,
+      story_title: assignment.story_title,
+      class_id: assignment.class_id,
+      teacher_id: assignment.teacher_id,
+      due_date: assignment.due_date,
+      instructions: assignment.instructions,
+      max_attempts: assignment.max_attempts,
+      is_published: assignment.is_published,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   },
 
   async update(id: string, updates: Partial<Assignment>): Promise<Assignment> {
-    try {
-      const setClause = Object.keys(updates)
-        .map((key, index) => `${key} = $${index + 2}`)
-        .join(', ');
-      
-      const values = [id, ...Object.values(updates)];
-      
-      const result = await query(
-        `UPDATE assignments SET ${setClause} WHERE id = $1 RETURNING *`,
-        values
-      );
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error updating assignment:', error);
-      throw error;
-    }
+    console.warn('assignmentService.update not implemented - using mock');
+    return {
+      id,
+      title: 'Mock Assignment',
+      description: null,
+      story_id: 'mock-story',
+      story_title: 'Mock Story',
+      class_id: 'mock-class',
+      teacher_id: 'mock-teacher',
+      due_date: null,
+      instructions: null,
+      max_attempts: 3,
+      is_published: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...updates,
+    };
   },
 
   async delete(id: string): Promise<void> {
-    try {
-      await query('DELETE FROM assignments WHERE id = $1', [id]);
-    } catch (error) {
-      console.error('Error deleting assignment:', error);
-      throw error;
-    }
+    console.warn('assignmentService.delete not implemented - using mock');
   }
 };
 
-// =============================================================================
-// RECORDING SERVICE
-// =============================================================================
-
+// Mock recording service
 export const recordingService = {
   async getAll(): Promise<Recording[]> {
-    try {
-      const result = await query('SELECT * FROM recordings ORDER BY created_at DESC');
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching recordings:', error);
-      throw error;
-    }
+    console.warn('recordingService.getAll not implemented - using mock');
+    return [];
   },
 
   async getById(id: string): Promise<Recording | null> {
-    try {
-      const result = await query('SELECT * FROM recordings WHERE id = $1', [id]);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching recording:', error);
-      throw error;
-    }
+    console.warn('recordingService.getById not implemented - using mock');
+    return null;
   },
 
   async getByAssignment(assignmentId: string): Promise<Recording[]> {
-    try {
-      const result = await query('SELECT * FROM recordings WHERE assignment_id = $1 ORDER BY created_at DESC', [assignmentId]);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching recordings by assignment:', error);
-      throw error;
-    }
+    console.warn('recordingService.getByAssignment not implemented - using mock');
+    return [];
   },
 
   async create(recording: Omit<Recording, 'id' | 'created_at' | 'updated_at'>): Promise<Recording> {
-    try {
-      const result = await query(
-        'INSERT INTO recordings (student_id, assignment_id, attempt_number, audio_url, audio_filename, audio_size_bytes, audio_duration_seconds, transcript, feedback_data, accuracy_score, reading_pace, word_count, correct_words, status, processing_started_at, processing_completed_at, error_message, submitted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *',
-        [recording.student_id, recording.assignment_id, recording.attempt_number, recording.audio_url, recording.audio_filename, recording.audio_size_bytes, recording.audio_duration_seconds, recording.transcript, recording.feedback_data, recording.accuracy_score, recording.reading_pace, recording.word_count, recording.correct_words, recording.status, recording.processing_started_at, recording.processing_completed_at, recording.error_message, recording.submitted_at]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating recording:', error);
-      throw error;
-    }
+    console.warn('recordingService.create not implemented - using mock');
+    return {
+      id: 'mock-recording-id',
+      student_id: recording.student_id,
+      assignment_id: recording.assignment_id,
+      attempt_number: recording.attempt_number,
+      audio_url: recording.audio_url,
+      audio_filename: recording.audio_filename,
+      audio_size_bytes: recording.audio_size_bytes,
+      audio_duration_seconds: recording.audio_duration_seconds,
+      transcript: recording.transcript,
+      feedback_data: recording.feedback_data,
+      accuracy_score: recording.accuracy_score,
+      reading_pace: recording.reading_pace,
+      word_count: recording.word_count,
+      correct_words: recording.correct_words,
+      status: recording.status,
+      processing_started_at: recording.processing_started_at,
+      processing_completed_at: recording.processing_completed_at,
+      error_message: recording.error_message,
+      submitted_at: recording.submitted_at,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   },
 
   async update(id: string, updates: Partial<Recording>): Promise<Recording> {
-    try {
-      const setClause = Object.keys(updates)
-        .map((key, index) => `${key} = $${index + 2}`)
-        .join(', ');
-      
-      const values = [id, ...Object.values(updates)];
-      
-      const result = await query(
-        `UPDATE recordings SET ${setClause} WHERE id = $1 RETURNING *`,
-        values
-      );
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error updating recording:', error);
-      throw error;
-    }
+    console.warn('recordingService.update not implemented - using mock');
+    return {
+      id,
+      student_id: 'mock-student',
+      assignment_id: 'mock-assignment',
+      attempt_number: 1,
+      audio_url: 'mock-url',
+      audio_filename: 'mock-file',
+      audio_size_bytes: null,
+      audio_duration_seconds: null,
+      transcript: null,
+      feedback_data: null,
+      accuracy_score: null,
+      reading_pace: null,
+      word_count: null,
+      correct_words: null,
+      status: 'uploaded',
+      processing_started_at: null,
+      processing_completed_at: null,
+      error_message: null,
+      submitted_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...updates,
+    };
   },
 
   async delete(id: string): Promise<void> {
-    try {
-      await query('DELETE FROM recordings WHERE id = $1', [id]);
-    } catch (error) {
-      console.error('Error deleting recording:', error);
-      throw error;
-    }
+    console.warn('recordingService.delete not implemented - using mock');
   }
 };

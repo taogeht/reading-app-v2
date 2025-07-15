@@ -1,4 +1,8 @@
-import { auth } from "./auth";
+import { betterAuth } from "better-auth";
+import { getAuthConfig } from "./auth";
+
+// Create auth instance on server-side only
+const auth = betterAuth(getAuthConfig());
 
 // Handler for BetterAuth API routes
 export async function authHandler(request: Request): Promise<Response> {

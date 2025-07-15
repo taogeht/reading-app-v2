@@ -50,8 +50,12 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   define: {
-    // Ensure environment variables are available
-    'process.env.BETTER_AUTH_SECRET': JSON.stringify(process.env.BETTER_AUTH_SECRET),
-    'process.env.BETTER_AUTH_URL': JSON.stringify(process.env.BETTER_AUTH_URL),
+    // Define global variables for browser compatibility
+    global: 'globalThis',
+  },
+  build: {
+    rollupOptions: {
+      external: ['pg', 'better-auth/node'],
+    },
   },
 });
