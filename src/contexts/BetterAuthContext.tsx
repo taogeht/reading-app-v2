@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSession, signIn as betterSignIn, signOut as betterSignOut } from '../lib/auth-client';
 
 export type UserRole = 'student' | 'teacher' | 'admin';
@@ -34,8 +34,40 @@ export const useAuth = () => {
   return context;
 };
 
+// Custom hook to safely handle auth session
+const useSafeSession = () => {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    try {
+      // This is a workaround since we can't conditionally call useSession
+      const sessionData = useSession();
+      setSession(sessionData.data);
+      setLoading(sessionData.isPending);
+      setError(null);
+    } catch (err) {
+      console.warn("Auth session unavailable, using mock state:", err);
+      setSession(null);
+      setLoading(false);
+      setError(err);
+    }
+  }, []);
+
+  return { session, loading, error };
+};
+
 export const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: session, isPending: loading } = useSession();
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
+  // For now, we'll just use a mock session state until we fix the server-side auth
+  useEffect(() => {
+    console.warn("BetterAuth not fully configured - using mock session state");
+    setSession(null);
+    setLoading(false);
+  }, []);
   
   // Convert BetterAuth session data to our UserProfile format
   const user = session?.user ? {
@@ -52,18 +84,9 @@ export const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Sign in function compatible with existing interface
   const signIn = async (email: string, password: string) => {
     try {
-      const result = await betterSignIn.email({
-        email,
-        password,
-      });
-
-      if (result.error) {
-        console.error('Sign in error:', result.error);
-        return { error: new Error(result.error.message || 'Sign in failed') };
-      }
-
-      console.log('✅ Sign in successful');
-      return { error: null };
+      console.warn("Auth sign in not fully configured - using mock");
+      // TODO: Implement actual sign in when server-side auth is working
+      return { error: new Error("Authentication not configured") };
     } catch (error) {
       console.error('💥 Unexpected sign in error:', error);
       return { error: error as Error };
@@ -73,7 +96,8 @@ export const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Sign out function
   const signOut = async () => {
     try {
-      await betterSignOut();
+      console.warn("Auth sign out not fully configured - using mock");
+      // TODO: Implement actual sign out when server-side auth is working
       return { error: null };
     } catch (error) {
       console.error('Sign out error:', error);
@@ -84,10 +108,10 @@ export const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Update profile function (placeholder - needs implementation)
   const updateProfile = async (updates: Partial<UserProfile>) => {
     try {
-      // BetterAuth profile updates would go here
-      // For now, return success
+      console.warn("Auth profile update not fully configured - using mock");
+      // TODO: Implement actual profile update when server-side auth is working
       console.log('Profile update requested:', updates);
-      return { error: null };
+      return { error: new Error('Profile update not implemented') };
     } catch (error) {
       return { error: error as Error };
     }
