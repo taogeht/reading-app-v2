@@ -62,8 +62,21 @@ export const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // For now, we'll just use a mock session state until we fix the server-side auth
+  // Safely try to use auth session with fallback
   useEffect(() => {
+    try {
+      // Try to use the real useSession hook
+      const sessionData = useSession();
+      if (sessionData) {
+        setSession(sessionData.data);
+        setLoading(sessionData.isPending);
+        return;
+      }
+    } catch (error) {
+      console.warn("Auth session not available, using mock state:", error);
+    }
+    
+    // Fallback to mock state
     console.warn("BetterAuth not fully configured - using mock session state");
     setSession(null);
     setLoading(false);
