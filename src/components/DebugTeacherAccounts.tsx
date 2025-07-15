@@ -28,13 +28,59 @@ export const DebugTeacherAccounts: React.FC = () => {
       );
 
       console.log('✅ Found teachers:', result.rows);
-      setTeachers(result.rows.map(row => ({
-        ...row,
-        is_active: true // Default to active since we don't have this field in our schema
-      })));
+      
+      if (result.rows && result.rows.length > 0) {
+        setTeachers(result.rows.map(row => ({
+          ...row,
+          is_active: true // Default to active since we don't have this field in our schema
+        })));
+      } else {
+        // Use mock data when no results or in browser environment
+        console.warn('No teachers found or database not available - using mock data');
+        const mockTeachers: TeacherAccount[] = [
+          {
+            id: 'mock-teacher-1',
+            username: 'teacher1',
+            email: 'teacher1@example.com',
+            full_name: 'Mock Teacher 1',
+            is_active: true,
+          },
+          {
+            id: 'mock-teacher-2',
+            username: 'teacher2',
+            email: 'teacher2@example.com',
+            full_name: 'Mock Teacher 2',
+            is_active: true,
+          },
+        ];
+        
+        setTeachers(mockTeachers);
+        setError('Using mock data - database not available');
+      }
     } catch (err) {
       console.error('💥 Unexpected error:', err);
-      setError('Unexpected error occurred');
+      console.warn('Using mock data for teacher accounts due to error');
+      
+      // Mock data when database query fails (browser environment)
+      const mockTeachers: TeacherAccount[] = [
+        {
+          id: 'mock-teacher-1',
+          username: 'teacher1',
+          email: 'teacher1@example.com',
+          full_name: 'Mock Teacher 1',
+          is_active: true,
+        },
+        {
+          id: 'mock-teacher-2',
+          username: 'teacher2',
+          email: 'teacher2@example.com',
+          full_name: 'Mock Teacher 2',
+          is_active: true,
+        },
+      ];
+      
+      setTeachers(mockTeachers);
+      setError('Using mock data - database query failed');
     } finally {
       setLoading(false);
     }

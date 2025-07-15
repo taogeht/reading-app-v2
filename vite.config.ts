@@ -52,6 +52,8 @@ export default defineConfig({
   define: {
     // Define global variables for browser compatibility
     global: 'globalThis',
+    // Mock require for browser compatibility
+    require: 'undefined',
   },
   build: {
     rollupOptions: {

@@ -1,35 +1,64 @@
-import { Pool, PoolConfig } from 'pg';
+// Server-side only database connection
+// This file should only be used in server-side contexts
 
-// Database configuration
-const databaseConfig: PoolConfig = {
-  // Use DATABASE_URL if available (Railway format)
-  connectionString: import.meta.env.DATABASE_URL,
-  // Fallback to individual variables
-  host: import.meta.env.PGHOST || 'localhost',
-  port: parseInt(import.meta.env.PGPORT || '5432'),
-  database: import.meta.env.PGDATABASE || 'reading_app',
-  user: import.meta.env.PGUSER || 'postgres',
-  password: import.meta.env.PGPASSWORD || '',
-  
-  // Connection pool settings
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle
-  connectionTimeoutMillis: 2000, // Connection timeout
-  
-  // SSL configuration for production
-  ssl: import.meta.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-};
+// Check if we're in browser environment
+const isBrowser = typeof window !== 'undefined';
 
-// Create connection pool
-export const pool = new Pool(databaseConfig);
+let pool: any = null;
 
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-});
+// Only import and setup database connection server-side
+if (!isBrowser) {
+  try {
+    const { Pool } = require('pg');
+    
+    // Database configuration
+    const databaseConfig = {
+      // Use DATABASE_URL if available (Railway format)
+      connectionString: process.env.DATABASE_URL,
+      // Fallback to individual variables
+      host: process.env.PGHOST || 'localhost',
+      port: parseInt(process.env.PGPORT || '5432'),
+      database: process.env.PGDATABASE || 'reading_app',
+      user: process.env.PGUSER || 'postgres',
+      password: process.env.PGPASSWORD || '',
+      
+      // Connection pool settings
+      max: 20, // Maximum number of clients in the pool
+      idleTimeoutMillis: 30000, // How long a client is allowed to remain idle
+      connectionTimeoutMillis: 2000, // Connection timeout
+      
+      // SSL configuration for production
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    };
+
+    // Create connection pool
+    pool = new Pool(databaseConfig);
+  } catch (error) {
+    console.warn('Database connection only available server-side');
+  }
+}
+
+export { pool };
+
+// Handle pool errors (server-side only)
+if (!isBrowser && pool) {
+  pool.on('error', (err: Error) => {
+    console.error('Unexpected error on idle client', err);
+  });
+}
 
 // Database connection health check
 export const testConnection = async (): Promise<boolean> => {
+  if (isBrowser) {
+    console.warn('testConnection not available in browser - using mock');
+    return false;
+  }
+  
+  if (!pool) {
+    console.error('Database pool not initialized');
+    return false;
+  }
+  
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
@@ -44,6 +73,16 @@ export const testConnection = async (): Promise<boolean> => {
 
 // Generic query function with error handling
 export const query = async (text: string, params?: any[]) => {
+  if (isBrowser) {
+    console.warn('Database query not available in browser - using mock');
+    return { rows: [], rowCount: 0 };
+  }
+  
+  if (!pool) {
+    console.error('Database pool not initialized');
+    throw new Error('Database not available');
+  }
+  
   const start = Date.now();
   try {
     const result = await pool.query(text, params);
@@ -58,6 +97,16 @@ export const query = async (text: string, params?: any[]) => {
 
 // Transaction helper
 export const transaction = async (callback: (client: any) => Promise<any>) => {
+  if (isBrowser) {
+    console.warn('Database transaction not available in browser - using mock');
+    return null;
+  }
+  
+  if (!pool) {
+    console.error('Database pool not initialized');
+    throw new Error('Database not available');
+  }
+  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -74,6 +123,16 @@ export const transaction = async (callback: (client: any) => Promise<any>) => {
 
 // Graceful shutdown
 export const closePool = async () => {
+  if (isBrowser) {
+    console.warn('closePool not available in browser');
+    return;
+  }
+  
+  if (!pool) {
+    console.warn('Database pool not initialized');
+    return;
+  }
+  
   await pool.end();
   console.log('Database pool closed');
 };
