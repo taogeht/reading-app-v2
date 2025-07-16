@@ -6,21 +6,19 @@ const isBrowser = typeof window !== 'undefined';
 
 let pool: any = null;
 
-// Only import and setup database connection server-side
-if (!isBrowser) {
+// Initialize database connection asynchronously 
+async function initializeDatabase() {
+  if (isBrowser || pool) return;
+  
   try {
-    const { Pool } = require('pg');
+    // Dynamic import for ESM compatibility
+    const pg = await import('pg');
+    const { Pool } = pg.default || pg;
     
     // Database configuration
     const databaseConfig = {
       // Use DATABASE_URL if available (Railway format)
-      connectionString: process.env.DATABASE_URL,
-      // Fallback to individual variables
-      host: process.env.PGHOST || 'localhost',
-      port: parseInt(process.env.PGPORT || '5432'),
-      database: process.env.PGDATABASE || 'reading_app',
-      user: process.env.PGUSER || 'postgres',
-      password: process.env.PGPASSWORD || '',
+      connectionString: process.env.DATABASE_URL || "postgresql://postgres:NZvYoxZRFEpiOmpKzVrCHCbyDfXNqKAH@caboose.proxy.rlwy.net:27141/railway",
       
       // Connection pool settings
       max: 20, // Maximum number of clients in the pool
@@ -30,12 +28,29 @@ if (!isBrowser) {
       // SSL configuration for production
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     };
+    
+    console.log('🔧 Database config:', {
+      hasConnectionString: !!databaseConfig.connectionString,
+      connectionStringPreview: databaseConfig.connectionString?.substring(0, 30) + '...'
+    });
 
     // Create connection pool
     pool = new Pool(databaseConfig);
+    console.log('✅ Database pool initialized successfully');
+    
+    // Handle pool errors
+    pool.on('error', (err: Error) => {
+      console.error('Unexpected error on idle client', err);
+    });
   } catch (error) {
+    console.error('❌ Database connection failed:', error);
     console.warn('Database connection only available server-side');
   }
+}
+
+// Only initialize database connection server-side
+if (!isBrowser) {
+  initializeDatabase();
 }
 
 export { pool };

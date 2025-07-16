@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Users, FileText, Play, Pause, Download, Filter, Search, RefreshCw, Calendar, Copy, ExternalLink, Check, Archive, Trash2, RotateCcw, Eye, BarChart3, Clock, Star } from 'lucide-react';
-import { useAuth } from '../contexts/BetterAuthContext';
-import { RecordingUploadService, RecordingSubmission } from '../services/RecordingUploadService';
+import { useAuth } from '../contexts/UnifiedAuthContext';
+import { apiClient, type ClassInfo, type Recording } from '../services/apiClient';
 import { AssignmentManager } from './AssignmentManager';
 import { FeedbackData } from '../types';
 
-interface TeacherClass {
-  id: string;
-  name: string;
-  grade_level: number;
-  student_count: number;
-  access_token?: string;
-}
+// Use ClassInfo from API client instead of custom interface
 
 export const TeacherDashboard: React.FC = () => {
-  const { profile, signOut } = useAuth();
-  const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const { user, signOut } = useAuth();
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  const [recordings, setRecordings] = useState<RecordingSubmission[]>([]);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -60,20 +54,20 @@ export const TeacherDashboard: React.FC = () => {
   }, [autoRefresh, selectedClassId, activeTab]);
 
   const fetchTeacherClasses = async () => {
-    if (!profile?.id) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
 
     try {
-      const result = await RecordingUploadService.getTeacherClasses(profile.id);
+      const result = await apiClient.getClasses(user.id);
       if (result.error) {
         console.error('Error fetching classes:', result.error);
         // Fall back to empty array but don't show error to user yet
         setClasses([]);
       } else {
-        setClasses(result.classes);
-        if (result.classes.length > 0) {
+        setClasses(result.classes || []);
+        if (result.classes && result.classes.length > 0) {
           setSelectedClassId(result.classes[0].id);
         }
       }
@@ -88,14 +82,14 @@ export const TeacherDashboard: React.FC = () => {
   const fetchClassRecordings = async (classId: string) => {
     setRefreshing(true);
     try {
-      const result = await RecordingUploadService.getClassRecordings(classId);
+      const result = await apiClient.getRecordings(classId);
       if (result.error) {
         console.error('Error fetching recordings:', result.error);
       } else {
         const previousCount = recordings.length;
-        const newCount = result.recordings.length;
+        const newCount = result.recordings?.length || 0;
         
-        setRecordings(result.recordings);
+        setRecordings(result.recordings || []);
         setLastRefreshTime(new Date());
         
         // If new recordings were added, trigger assignment refresh
@@ -111,14 +105,14 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  const handlePlayRecording = async (recording: RecordingSubmission) => {
+  const handlePlayRecording = async (recording: Recording) => {
     if (playingRecording === recording.id) {
       setPlayingRecording(null);
       return;
     }
 
     try {
-      const { url, error } = await RecordingUploadService.getRecordingUrl(recording.file_path);
+      const { url, error } = await apiClient.getRecordingUrl(recording.id);
       if (error || !url) {
         console.error('Error getting recording URL:', error);
         return;
@@ -184,13 +178,13 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  const handleArchiveRecording = async (recording: RecordingSubmission) => {
+  const handleArchiveRecording = async (recording: Recording) => {
     if (actionLoading) return;
     
     setActionLoading(recording.id);
     try {
-      const result = await RecordingUploadService.archiveRecording(recording.id);
-      if (result.success) {
+      const result = await apiClient.archiveRecording(recording.id);
+      if (!result.error) {
         // Refresh recordings
         if (selectedClassId) {
           await fetchClassRecordings(selectedClassId);
@@ -207,13 +201,13 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  const handleUnarchiveRecording = async (recording: RecordingSubmission) => {
+  const handleUnarchiveRecording = async (recording: Recording) => {
     if (actionLoading) return;
     
     setActionLoading(recording.id);
     try {
-      const result = await RecordingUploadService.unarchiveRecording(recording.id);
-      if (result.success) {
+      const result = await apiClient.unarchiveRecording(recording.id);
+      if (!result.error) {
         // Refresh recordings
         if (selectedClassId) {
           await fetchClassRecordings(selectedClassId);
@@ -230,10 +224,10 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteRecording = async (recording: RecordingSubmission) => {
+  const handleDeleteRecording = async (recording: Recording) => {
     if (actionLoading) return;
     
-    const studentName = (recording.student as any)?.full_name || 'Unknown Student';
+    const studentName = recording.student_name || 'Unknown Student';
     const confirmMessage = `Are you sure you want to permanently delete this recording by ${studentName}?\n\nThis action cannot be undone and will remove both the audio file and all associated data.`;
     
     if (!confirm(confirmMessage)) {
@@ -242,8 +236,8 @@ export const TeacherDashboard: React.FC = () => {
     
     setActionLoading(recording.id);
     try {
-      const result = await RecordingUploadService.deleteRecording(recording.id);
-      if (result.success) {
+      const result = await apiClient.deleteRecording(recording.id);
+      if (!result.error) {
         // Refresh recordings
         if (selectedClassId) {
           await fetchClassRecordings(selectedClassId);
@@ -261,15 +255,15 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   // Extract speech analysis from recording metadata
-  const getRecordingAnalysis = (recording: RecordingSubmission): FeedbackData | null => {
-    if (!recording.metadata || typeof recording.metadata !== 'object') {
+  const getRecordingAnalysis = (recording: Recording): FeedbackData | null => {
+    if (!recording.feedback_data || typeof recording.feedback_data !== 'object') {
       return null;
     }
-    return (recording.metadata as any).speech_analysis || null;
+    return recording.feedback_data || null;
   };
 
   // Handle viewing detailed analysis
-  const handleViewAnalysis = (recording: RecordingSubmission) => {
+  const handleViewAnalysis = (recording: Recording) => {
     const analysis = getRecordingAnalysis(recording);
     if (analysis) {
       setSelectedAnalysis(analysis);
@@ -278,7 +272,7 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   // Get analysis status badge
-  const getAnalysisStatusBadge = (recording: RecordingSubmission) => {
+  const getAnalysisStatusBadge = (recording: Recording) => {
     const analysis = getRecordingAnalysis(recording);
     
     if (recording.status === 'processing') {
@@ -347,7 +341,7 @@ export const TeacherDashboard: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-                <p className="text-gray-600">Welcome back, {profile?.full_name}</p>
+                <p className="text-gray-600">Welcome back, {user?.full_name}</p>
               </div>
             </div>
             
@@ -666,7 +660,7 @@ export const TeacherDashboard: React.FC = () => {
                           )}
 
                           <button
-                            onClick={() => RecordingUploadService.getRecordingUrl(recording.file_path).then(({url}) => {
+                            onClick={() => apiClient.getRecordingUrl(recording.id).then(({url}) => {
                               if (url) window.open(url, '_blank');
                             })}
                             disabled={actionLoading === recording.id}

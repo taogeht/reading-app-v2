@@ -1,11 +1,11 @@
 import React from 'react';
 import { User, LogOut, Settings, GraduationCap, BookOpen, Shield } from 'lucide-react';
-import { useAuth } from '../contexts/BetterAuthContext';
+import { useAuth } from '../contexts/UnifiedAuthContext';
 
 export const UserProfile: React.FC = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
   }
 
@@ -46,11 +46,11 @@ export const UserProfile: React.FC = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-medium text-gray-800">
-                {profile.full_name || user.email}
+                {user.full_name || user.email}
               </span>
-              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(profile.role)}`}>
-                {getRoleIcon(profile.role)}
-                {profile.role}
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                {getRoleIcon(user.role)}
+                {user.role}
               </span>
             </div>
             <span className="text-sm text-gray-500">{user.email}</span>

@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '../contexts/BetterAuthContext';
+import { useAuth, UserSession } from '../contexts/UnifiedAuthContext';
 import { classService, profileService, assignmentService, recordingService } from '../services/railwayDatabaseService';
 import { TeacherModal } from './modals/TeacherModal';
 import { StudentModal } from './modals/StudentModal';
@@ -26,7 +26,7 @@ import { ClassModal } from './modals/ClassModal';
 import { BulkImportModal } from './modals/BulkImportModal';
 import { ClassRosterManager } from './ClassRosterManager';
 import type { Class, Assignment, Recording } from '../services/railwayDatabaseService';
-import type { UserProfile } from '../contexts/BetterAuthContext';
+// UserSession now imported from UnifiedAuthContext above
 
 interface DashboardStats {
   totalTeachers: number;
@@ -49,9 +49,9 @@ export const SuperAdminDashboard: React.FC = () => {
     totalAssignments: 0,
     totalRecordings: 0
   });
-  const [teachers, setTeachers] = useState<UserProfile[]>([]);
+  const [teachers, setTeachers] = useState<UserSession[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [students, setStudents] = useState<UserProfile[]>([]);
+  const [students, setStudents] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
@@ -61,8 +61,8 @@ export const SuperAdminDashboard: React.FC = () => {
   const [classModalOpen, setClassModalOpen] = useState(false);
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
   const [rosterManagerOpen, setRosterManagerOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState<UserProfile | null>(null);
-  const [editingStudent, setEditingStudent] = useState<UserProfile | null>(null);
+  const [editingTeacher, setEditingTeacher] = useState<UserSession | null>(null);
+  const [editingStudent, setEditingStudent] = useState<UserSession | null>(null);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [selectedClassForRoster, setSelectedClassForRoster] = useState<Class | null>(null);
 
@@ -117,7 +117,7 @@ export const SuperAdminDashboard: React.FC = () => {
       setClasses(classesData);
 
       // Load all students across all classes
-      let allStudents: UserProfile[] = [];
+      let allStudents: UserSession[] = [];
       for (const classItem of classesData) {
         const students = await profileService.getStudentsByClass(classItem.id);
         allStudents = [...allStudents, ...students];
@@ -304,7 +304,7 @@ export const SuperAdminDashboard: React.FC = () => {
     setTeacherModalOpen(true);
   };
 
-  const handleEditTeacher = (teacher: UserProfile) => {
+  const handleEditTeacher = (teacher: UserSession) => {
     setEditingTeacher(teacher);
     setTeacherModalOpen(true);
   };
@@ -355,7 +355,7 @@ export const SuperAdminDashboard: React.FC = () => {
     setStudentModalOpen(true);
   };
 
-  const handleEditStudent = (student: UserProfile) => {
+  const handleEditStudent = (student: UserSession) => {
     setEditingStudent(student);
     setStudentModalOpen(true);
   };

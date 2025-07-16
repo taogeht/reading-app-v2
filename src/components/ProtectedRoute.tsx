@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth, UserRole } from '../contexts/BetterAuthContext';
+import { useAuth, UserRole } from '../contexts/UnifiedAuthContext';
 import { AuthForm } from './AuthForm';
 import { TeacherLogin } from './TeacherLogin';
 
@@ -15,7 +15,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
   requireAuth = true 
 }) => {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -24,14 +24,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Smart redirection based on role mismatch (must be at top level)
   useEffect(() => {
-    if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-      console.log(`Role mismatch: User has role "${profile.role}", but route requires: ${allowedRoles.join(' or ')}`);
+    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+      console.log(`Role mismatch: User has role "${user.role}", but route requires: ${allowedRoles.join(' or ')}`);
       
       // Redirect to appropriate dashboard based on user's actual role
-      if (profile.role === 'teacher') {
+      if (user.role === 'teacher') {
         console.log('Redirecting teacher to teacher dashboard');
         navigate('/teacher', { replace: true });
-      } else if (profile.role === 'admin') {
+      } else if (user.role === 'admin') {
         console.log('Redirecting admin to admin dashboard');
         navigate('/admin', { replace: true });
       } else {
@@ -39,7 +39,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         navigate('/welcome', { replace: true });
       }
     }
-  }, [allowedRoles, profile, navigate]);
+  }, [allowedRoles, user, navigate]);
 
   // Show loading spinner while checking auth state
   if (loading) {
@@ -75,20 +75,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  // If user is logged in but profile is not loaded yet
-  if (requireAuth && user && !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
   // If there's a role mismatch, show loading while redirecting
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

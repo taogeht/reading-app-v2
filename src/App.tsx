@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { BookOpen, Sparkles, AlertCircle } from 'lucide-react';
-import { BetterAuthProvider as AuthProvider, useAuth } from './contexts/BetterAuthContext';
-import { StudentAuthProvider } from './contexts/StudentAuthContext';
+import { UnifiedAuthProvider as AuthProvider, useAuth } from './contexts/UnifiedAuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { UserProfile } from './components/UserProfile';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
@@ -271,53 +270,51 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <StudentAuthProvider>
-          <Routes>
-            {/* Welcome/Landing page */}
-            <Route path="/welcome" element={<WelcomePage />} />
-            
-            {/* Class access route - no auth required */}
-            <Route path="/class/:accessToken" element={<ClassAccess />} />
-            
-            {/* Student routes - after visual password login */}
-            <Route path="/assignments" element={<StudentAssignments />} />
-            <Route path="/practice" element={<StudentPractice />} />
-            <Route path="/assignment/:assignmentId" element={<AssignmentPractice />} />
-            
-            {/* Admin dashboard - requires admin role, no direct links to this */}
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={['admin']}>
-                  <SuperAdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
+        <Routes>
+          {/* Welcome/Landing page */}
+          <Route path="/welcome" element={<WelcomePage />} />
+          
+          {/* Class access route - no auth required */}
+          <Route path="/class/:accessToken" element={<ClassAccess />} />
+          
+          {/* Student routes - after visual password login */}
+          <Route path="/assignments" element={<StudentAssignments />} />
+          <Route path="/practice" element={<StudentPractice />} />
+          <Route path="/assignment/:assignmentId" element={<AssignmentPractice />} />
+          
+          {/* Admin dashboard - requires admin role, no direct links to this */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute requireAuth={true} allowedRoles={['admin']}>
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
 
-            {/* Teacher dashboard with direct login - requires teacher role */}
-            <Route 
-              path="/teacher" 
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={['teacher']}>
-                  <TeacherDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Main app - requires auth */}
-            <Route 
-              path="/app" 
-              element={
-                <ProtectedRoute requireAuth={true}>
-                  <AppContent />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Default redirect based on role */}
-            <Route path="/" element={<RoleRedirect />} />
-          </Routes>
-        </StudentAuthProvider>
+          {/* Teacher dashboard with direct login - requires teacher role */}
+          <Route 
+            path="/teacher" 
+            element={
+              <ProtectedRoute requireAuth={true} allowedRoles={['teacher']}>
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Main app - requires auth */}
+          <Route 
+            path="/app" 
+            element={
+              <ProtectedRoute requireAuth={true}>
+                <AppContent />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Default redirect based on role */}
+          <Route path="/" element={<RoleRedirect />} />
+        </Routes>
       </AuthProvider>
     </Router>
   );

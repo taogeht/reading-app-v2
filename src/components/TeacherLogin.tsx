@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff, GraduationCap } from 'lucide-react';
-import { useAuth } from '../contexts/BetterAuthContext';
+import { useAuth } from '../contexts/UnifiedAuthContext';
 
 interface TeacherLoginProps {
   onSuccess?: () => void;
@@ -37,18 +37,21 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess, onBackToM
       console.log('🔐 Teacher login attempt:', { email: formData.email });
       
       // Simple direct authentication with email and password
-      const { error: signInError } = await signIn(formData.email, formData.password);
+      const { error: signInError } = await signIn({
+        email: formData.email,
+        password: formData.password
+      });
 
       if (signInError) {
         console.error('❌ Authentication error:', signInError);
-        if (signInError.message.includes('Invalid login credentials')) {
+        if (signInError.includes('Invalid email or password')) {
           setError('Invalid email or password. Please check your credentials and try again.');
-        } else if (signInError.message.includes('Email not confirmed')) {
+        } else if (signInError.includes('Email not confirmed')) {
           setError('Your account email is not confirmed. Please contact your administrator.');
-        } else if (signInError.message.includes('too many requests')) {
+        } else if (signInError.includes('too many requests')) {
           setError('Too many login attempts. Please wait a few minutes before trying again.');
         } else {
-          setError(`Sign in failed: ${signInError.message}`);
+          setError(`Sign in failed: ${signInError}`);
         }
       } else {
         console.log('✅ Teacher login successful');

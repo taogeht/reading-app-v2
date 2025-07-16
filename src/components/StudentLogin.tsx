@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Lock, ArrowRight, AlertCircle } from 'lucide-react';
-import { useStudentAuth, VisualPassword, StudentProfile, ClassInfo } from '../contexts/StudentAuthContext';
+import { useAuth, VisualPassword } from '../contexts/UnifiedAuthContext';
 
 interface StudentLoginProps {
   classAccessToken: string;
@@ -8,199 +8,122 @@ interface StudentLoginProps {
 }
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({ classAccessToken, onSuccess }) => {
-  const { getClassByToken, getStudentsInClass, getVisualPasswords, authenticateStudent } = useStudentAuth();
+  const { getVisualPasswords, authenticateWithClass } = useAuth();
   
-  const [step, setStep] = useState<'loading' | 'select-student' | 'select-password'>('loading');
-  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
-  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [step, setStep] = useState<'loading' | 'input-name' | 'select-password'>('loading');
   const [visualPasswords, setVisualPasswords] = useState<VisualPassword[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
+  const [studentName, setStudentName] = useState<string>('');
   const [selectedPassword, setSelectedPassword] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load class and students
+  // Load visual passwords
   useEffect(() => {
-    const loadClassData = async () => {
+    const loadVisualPasswords = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        console.log('Loading class data for token:', classAccessToken);
+        console.log('Loading visual passwords for class access token:', classAccessToken);
 
-        // Get class info
-        const { class: classData, error: classError } = await getClassByToken(classAccessToken);
-        console.log('Class data result:', { classData, classError });
+        // Get visual passwords for selection
+        const { passwords, error: passwordsError } = await getVisualPasswords();
+        console.log('Visual passwords result:', { passwords, passwordsError });
         
-        if (classError || !classData) {
-          setError(classError || 'Class not found');
+        if (passwordsError || !passwords) {
+          setError(passwordsError || 'Failed to load visual passwords');
           setLoading(false);
           setStep('loading');
           return;
         }
-        setClassInfo(classData);
 
-        // Get students in class
-        const { students: studentsData, error: studentsError } = await getStudentsInClass(classData.id);
-        console.log('Students data result:', { studentsData, studentsError });
-        
-        if (studentsError) {
-          console.warn('Failed to load students, but continuing anyway:', studentsError);
-          // Don't fail completely if students can't be loaded - they can be created on login
-        }
-        setStudents(studentsData || []);
-
-        // Get visual passwords
-        const { passwords, error: passwordsError } = await getVisualPasswords();
-        console.log('Visual passwords result:', { passwords, passwordsError });
-        
-        if (passwordsError) {
-          console.warn('Failed to load visual passwords, using fallback');
-          // Provide fallback visual passwords
-          setVisualPasswords([
-            { id: 'cat', name: 'Cat', display_emoji: '🐱', category: 'animals' as const },
-            { id: 'dog', name: 'Dog', display_emoji: '🐶', category: 'animals' as const },
-            { id: 'star', name: 'Star', display_emoji: '⭐', category: 'shapes' as const },
-            { id: 'heart', name: 'Heart', display_emoji: '❤️', category: 'shapes' as const }
-          ]);
-        } else {
-          setVisualPasswords(passwords);
-        }
-
-        setStep('select-student');
+        setVisualPasswords(passwords);
+        setStep('input-name');
         setLoading(false);
       } catch (error) {
-        console.error('Error loading class data:', error);
-        setError('Failed to load class information');
+        console.error('Error loading visual passwords:', error);
+        setError('Failed to load visual passwords');
         setLoading(false);
         setStep('loading');
       }
     };
 
-    loadClassData();
-  }, [classAccessToken, getClassByToken, getStudentsInClass, getVisualPasswords]);
+    loadVisualPasswords();
+  }, [classAccessToken, getVisualPasswords]);
 
-  const handleStudentSelect = (student: StudentProfile) => {
-    setSelectedStudent(student);
+  const handleNameSubmit = () => {
+    if (!studentName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
     setError(null);
     setStep('select-password');
   };
 
   const handlePasswordSelect = async (passwordId: string) => {
-    if (!selectedStudent) return;
+    if (!studentName.trim()) return;
 
     setSelectedPassword(passwordId);
     setLoading(true);
     setError(null);
 
-    const { success, error: authError } = await authenticateStudent(
-      classAccessToken,
-      selectedStudent.full_name,
-      passwordId
-    );
-
-    if (success) {
-      onSuccess?.();
-    } else {
-      setError(authError || 'Login failed. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleBackToStudents = () => {
-    setSelectedStudent(null);
-    setSelectedPassword(null);
-    setError(null);
-    setStep('select-student');
-  };
-
-  const getPasswordsByCategory = (category: string) => {
-    return visualPasswords.filter(p => p.category === category);
-  };
-
-  const getIconComponent = (password: VisualPassword) => {
-    // If we have display_emoji, use it directly
-    if (password.display_emoji) {
-      return (
-        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl">
-          {password.display_emoji}
-        </div>
-      );
-    }
-
-    // For colors, return colored circles
-    if (password.category === 'colors') {
-      const colorMap: Record<string, string> = {
-        red: '#ef4444',
-        blue: '#3b82f6',
-        green: '#22c55e',
-        yellow: '#eab308',
-        purple: '#a855f7',
-        orange: '#f97316'
-      };
+    try {
+      console.log('Authenticating student:', { studentName, passwordId, classAccessToken });
       
-      return (
-        <div 
-          className="w-12 h-12 rounded-full border-2 border-gray-300"
-          style={{ backgroundColor: colorMap[password.id] || '#6b7280' }}
-        />
+      const { error: authError } = await authenticateWithClass(
+        classAccessToken,
+        studentName.trim(),
+        passwordId
       );
-    }
 
-    // Fallback to icon_name mapping
-    const iconName = password.icon_name || password.name;
-    return (
-      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl">
-        {iconName === 'Cat' && '🐱'}
-        {iconName === 'Dog' && '🐶'}
-        {iconName === 'Rabbit' && '🐰'}
-        {iconName === 'Fish' && '🐟'}
-        {iconName === 'Bird' && '🐦'}
-        {iconName === 'Turtle' && '🐢'}
-        {iconName === 'Circle' && '⭕'}
-        {iconName === 'Square' && '⬜'}
-        {iconName === 'Triangle' && '🔺'}
-        {iconName === 'Star' && '⭐'}
-        {iconName === 'Heart' && '❤️'}
-        {iconName === 'Diamond' && '💎'}
-        {iconName === 'Car' && '🚗'}
-        {iconName === 'Home' && '🏠'}
-        {iconName === 'Tree' && '🌳'}
-        {iconName === 'Flower' && '🌸'}
-        {iconName === 'Sun' && '☀️'}
-        {iconName === 'Moon' && '🌙'}
-        {!['Cat', 'Dog', 'Rabbit', 'Fish', 'Bird', 'Turtle', 'Circle', 'Square', 'Triangle', 'Star', 'Heart', 'Diamond', 'Car', 'Home', 'Tree', 'Flower', 'Sun', 'Moon'].includes(iconName) && '📝'}
-      </div>
-    );
+      if (authError) {
+        console.error('Authentication failed:', authError);
+        setError(authError);
+      } else {
+        console.log('Authentication successful!');
+        onSuccess?.();
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setError('Failed to authenticate');
+    } finally {
+      setLoading(false);
+      setSelectedPassword(null);
+    }
   };
 
-  if (step === 'loading' || loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading Your Class</h2>
-          <p className="text-gray-600 mb-4">
-            {step === 'loading' ? 'Checking class information...' : 'Signing you in...'}
-          </p>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <p className="text-sm text-blue-700">
-              Access Token: <span className="font-mono">{classAccessToken}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Group visual passwords by category
+  const groupedPasswords = visualPasswords.reduce((acc, password) => {
+    if (!acc[password.category]) {
+      acc[password.category] = [];
+    }
+    acc[password.category].push(password);
+    return acc;
+  }, {} as Record<string, VisualPassword[]>);
 
-  if (error && !classInfo) {
+  if (step === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Oops!</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">Please check with your teacher for the correct link.</p>
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Loading...</h2>
+              <p className="text-gray-600">Please wait while we prepare your login</p>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -208,108 +131,109 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ classAccessToken, on
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-lg p-8">
-        
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="p-3 bg-blue-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Users className="h-8 w-8 text-blue-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Welcome to {classInfo?.name}!
-          </h1>
-          <p className="text-gray-600">
-            {step === 'select-student' ? 'Find your name below' : 'Choose your password'}
-          </p>
-        </div>
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
+        {step === 'input-name' && (
+          <>
+            <div className="text-center mb-8">
+              <div className="p-3 bg-blue-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">Welcome to Class!</h2>
+              <p className="text-gray-600 mt-2">Please enter your name to continue</p>
+            </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-center">{error}</p>
-          </div>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                  onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                  autoFocus
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleNameSubmit}
+                disabled={!studentName.trim()}
+                className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
+              >
+                Continue
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </button>
+            </div>
+          </>
         )}
 
-        {/* Step 1: Select Student */}
-        {step === 'select-student' && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-              Click on your name:
-            </h2>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {students.map((student) => (
-                <button
-                  key={student.id}
-                  onClick={() => handleStudentSelect(student)}
-                  className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-transparent hover:border-blue-300 rounded-xl transition-all duration-200 hover:scale-105 text-center"
-                >
-                  <div className="w-12 h-12 bg-blue-100 rounded-full mx-auto mb-2 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-blue-600" />
+        {step === 'select-password' && (
+          <>
+            <div className="text-center mb-8">
+              <div className="p-3 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Lock className="h-8 w-8 text-purple-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">Hi {studentName}!</h2>
+              <p className="text-gray-600 mt-2">Choose your visual password</p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {Object.entries(groupedPasswords).map(([category, passwords]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3 capitalize">
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {passwords.map((password) => (
+                      <button
+                        key={password.id}
+                        onClick={() => handlePasswordSelect(password.id)}
+                        disabled={loading}
+                        className={`p-4 border-2 rounded-xl transition-all duration-200 flex flex-col items-center gap-2 hover:border-purple-300 hover:shadow-md ${
+                          selectedPassword === password.id
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300'
+                        } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className="text-3xl">{password.display_emoji}</span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {password.name}
+                        </span>
+                        {loading && selectedPassword === password.id && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                  <p className="font-medium text-gray-800 text-sm">{student.full_name}</p>
-                </button>
+                </div>
               ))}
             </div>
 
-            {students.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No students found in this class.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Select Visual Password */}
-        {step === 'select-password' && selectedStudent && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="mt-8 text-center">
               <button
-                onClick={handleBackToStudents}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+                onClick={() => setStep('input-name')}
+                disabled={loading}
+                className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
               >
-                ← Back to names
+                ← Back to name entry
               </button>
-              <h2 className="text-lg font-semibold text-gray-800">
-                Hi {selectedStudent.full_name}! Choose your password:
-              </h2>
-              <div></div>
             </div>
-
-            {/* Visual Password Categories */}
-            <div className="space-y-8">
-              {['animals', 'shapes', 'objects', 'colors'].map((category) => {
-                const categoryPasswords = getPasswordsByCategory(category);
-                if (categoryPasswords.length === 0) return null;
-
-                return (
-                  <div key={category}>
-                    <h3 className="text-md font-medium text-gray-700 mb-4 capitalize">
-                      {category}
-                    </h3>
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                      {categoryPasswords.map((password) => (
-                        <button
-                          key={password.id}
-                          onClick={() => handlePasswordSelect(password.id)}
-                          disabled={loading}
-                          className={`p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 flex flex-col items-center gap-2 ${
-                            selectedPassword === password.id
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-300 bg-gray-50 hover:bg-blue-50'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {getIconComponent(password)}
-                          <span className="text-xs font-medium text-gray-700">
-                            {password.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -163,6 +163,8 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 // Import route handlers
 import { handleAuthRequest as authHandler } from './auth/index';
 import { handleVisualPasswordsRequest as visualPasswordsHandler } from './visual-passwords/index';
+import { handleClassesRequest as classesHandler } from './classes/index';
+import { handleRecordingsRequest as recordingsHandler } from './recordings/index';
 
 // Route handlers
 async function handleAuthRequest(request: ApiRequest): Promise<Response> {
@@ -178,11 +180,7 @@ async function handleUsersRequest(request: ApiRequest, id?: string, subResource?
 }
 
 async function handleClassesRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
-  // TODO: Implement in separate classes routes file
-  return new Response(
-    JSON.stringify(createApiResponse(null, 'Classes endpoints not implemented yet', 501)),
-    { status: 501, headers: { 'Content-Type': 'application/json' } }
-  );
+  return await classesHandler(request);
 }
 
 async function handleAssignmentsRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
@@ -194,11 +192,7 @@ async function handleAssignmentsRequest(request: ApiRequest, id?: string, subRes
 }
 
 async function handleRecordingsRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
-  // TODO: Implement in separate recordings routes file
-  return new Response(
-    JSON.stringify(createApiResponse(null, 'Recordings endpoints not implemented yet', 501)),
-    { status: 501, headers: { 'Content-Type': 'application/json' } }
-  );
+  return await recordingsHandler(request);
 }
 
 async function handleVisualPasswordsRequest(request: ApiRequest): Promise<Response> {

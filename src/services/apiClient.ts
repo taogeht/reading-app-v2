@@ -3,6 +3,8 @@
 
 import type { SignUpRequest, SignInRequest, UserSession } from '../api/auth/index';
 import type { VisualPassword } from '../api/visual-passwords/index';
+import type { ClassInfo, CreateClassRequest, UpdateClassRequest } from '../api/classes/index';
+import type { Recording } from '../api/recordings/index';
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -200,11 +202,164 @@ export class ApiClient {
     return { error: response.error || 'Failed to update user' };
   }
 
-  // TODO: Add methods for classes, assignments, recordings
+  // Classes management methods
+  async getClasses(teacherId?: string): Promise<{ classes?: ClassInfo[]; error?: string }> {
+    const queryParam = teacherId ? `?teacher_id=${teacherId}` : '';
+    const response = await this.request<ClassInfo[]>(`/classes${queryParam}`);
+    
+    if (response.data && response.status === 200) {
+      return { classes: response.data };
+    }
+    
+    return { error: response.error || 'Failed to fetch classes' };
+  }
+
+  async getClass(id: string): Promise<{ class?: ClassInfo; error?: string }> {
+    const response = await this.request<ClassInfo>(`/classes/${id}`);
+    
+    if (response.data && response.status === 200) {
+      return { class: response.data };
+    }
+    
+    return { error: response.error || 'Failed to fetch class' };
+  }
+
+  async createClass(classData: CreateClassRequest): Promise<{ class?: ClassInfo; error?: string }> {
+    const response = await this.request<ClassInfo>('/classes', {
+      method: 'POST',
+      body: JSON.stringify(classData),
+    });
+    
+    if (response.data && response.status === 201) {
+      return { class: response.data };
+    }
+    
+    return { error: response.error || 'Failed to create class' };
+  }
+
+  async updateClass(id: string, updates: UpdateClassRequest): Promise<{ class?: ClassInfo; error?: string }> {
+    const response = await this.request<ClassInfo>(`/classes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+    
+    if (response.data && response.status === 200) {
+      return { class: response.data };
+    }
+    
+    return { error: response.error || 'Failed to update class' };
+  }
+
+  async deleteClass(id: string): Promise<{ error?: string }> {
+    const response = await this.request(`/classes/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response.status === 200) {
+      return {};
+    }
+    
+    return { error: response.error || 'Failed to delete class' };
+  }
+
+  // Recordings management methods
+  async getRecordings(classId: string): Promise<{ recordings?: Recording[]; error?: string }> {
+    const response = await this.request<Recording[]>(`/recordings?class_id=${classId}`);
+    
+    if (response.data && response.status === 200) {
+      return { recordings: response.data };
+    }
+    
+    return { error: response.error || 'Failed to fetch recordings' };
+  }
+
+  async getRecording(id: string): Promise<{ recording?: Recording; error?: string }> {
+    const response = await this.request<Recording>(`/recordings/${id}`);
+    
+    if (response.data && response.status === 200) {
+      return { recording: response.data };
+    }
+    
+    return { error: response.error || 'Failed to fetch recording' };
+  }
+
+  async createRecording(recordingData: any): Promise<{ recording?: Recording; error?: string }> {
+    const response = await this.request<Recording>('/recordings', {
+      method: 'POST',
+      body: JSON.stringify(recordingData),
+    });
+    
+    if (response.data && response.status === 201) {
+      return { recording: response.data };
+    }
+    
+    return { error: response.error || 'Failed to create recording' };
+  }
+
+  async updateRecording(id: string, updates: any): Promise<{ recording?: Recording; error?: string }> {
+    const response = await this.request<Recording>(`/recordings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+    
+    if (response.data && response.status === 200) {
+      return { recording: response.data };
+    }
+    
+    return { error: response.error || 'Failed to update recording' };
+  }
+
+  async archiveRecording(id: string): Promise<{ error?: string }> {
+    const response = await this.request(`/recordings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ action: 'archive' }),
+    });
+    
+    if (response.status === 200) {
+      return {};
+    }
+    
+    return { error: response.error || 'Failed to archive recording' };
+  }
+
+  async unarchiveRecording(id: string): Promise<{ error?: string }> {
+    const response = await this.request(`/recordings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ action: 'unarchive' }),
+    });
+    
+    if (response.status === 200) {
+      return {};
+    }
+    
+    return { error: response.error || 'Failed to unarchive recording' };
+  }
+
+  async deleteRecording(id: string): Promise<{ error?: string }> {
+    const response = await this.request(`/recordings/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response.status === 200) {
+      return {};
+    }
+    
+    return { error: response.error || 'Failed to delete recording' };
+  }
+
+  async getRecordingUrl(id: string): Promise<{ url?: string; error?: string }> {
+    const response = await this.request<{ url: string }>(`/recordings/${id}/url`);
+    
+    if (response.data && response.status === 200) {
+      return { url: response.data.url };
+    }
+    
+    return { error: response.error || 'Failed to get recording URL' };
+  }
 }
 
 // Create singleton API client instance
 export const apiClient = new ApiClient();
 
 // Export types for use in components
-export type { SignUpRequest, SignInRequest, UserSession, VisualPassword };
+export type { SignUpRequest, SignInRequest, UserSession, VisualPassword, ClassInfo, CreateClassRequest, UpdateClassRequest, Recording };

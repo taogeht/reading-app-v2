@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/BetterAuthContext';
+import { useAuth } from '../contexts/UnifiedAuthContext';
 
 export const RoleRedirect: React.FC = () => {
-  const { profile, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   // Show loading while checking auth state
   if (loading) {
@@ -18,14 +18,14 @@ export const RoleRedirect: React.FC = () => {
   }
 
   // Redirect based on user role
-  if (profile?.role === 'admin') {
+  if (user?.role === 'admin') {
     return <Navigate to="/admin" replace />;
   }
   
-  if (profile?.role === 'teacher') {
+  if (user?.role === 'teacher') {
     return <Navigate to="/teacher" replace />;
   }
 
-  // Default to welcome page if no profile
+  // Default to welcome page if no user
   return <Navigate to="/welcome" replace />;
 };

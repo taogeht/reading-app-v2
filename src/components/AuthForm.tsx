@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { useAuth } from '../contexts/BetterAuthContext';
+import { useAuth } from '../contexts/UnifiedAuthContext';
 import { TeacherLogin } from './TeacherLogin';
 
 interface AuthFormProps {
@@ -44,9 +44,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
-      const { error } = await signIn(formData.email, formData.password);
+      const { error } = await signIn({
+        email: formData.email,
+        password: formData.password
+      });
       if (error) {
-        setError(error.message);
+        setError(error);
       } else {
         onSuccess?.();
       }

@@ -2,6 +2,7 @@
 // Unified authentication for all user types (students, teachers, admins)
 
 import { createApiResponse, ApiRequest } from '../index';
+import { DatabaseService } from '../../lib/database-service';
 
 export interface SignUpRequest {
   email: string;
@@ -113,22 +114,60 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
       }
     }
 
-    // TODO: Implement actual user creation with BetterAuth
-    console.warn('Sign up not fully implemented - using mock response');
+    // Check if user already exists
+    const existingUser = await DatabaseService.getUserByEmail(body.email);
+    if (existingUser) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'User already exists with this email', 409)),
+        { status: 409, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const mockUser: UserSession = {
-      id: `mock-${Date.now()}`,
+    // For students with class access token, verify class exists
+    if (body.role === 'student' && body.class_access_token) {
+      const classInfo = await DatabaseService.getClassByAccessToken(body.class_access_token);
+      if (!classInfo || !classInfo.allow_student_access) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'Invalid class access code', 400)),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      body.class_id = classInfo.id; // Set the class_id from the access token
+    }
+
+    // Create user profile in database
+    const userProfile = await DatabaseService.createUserProfile({
       email: body.email,
-      username: body.username || body.email.split('@')[0],
       full_name: body.full_name,
       role: body.role,
+      username: body.username,
       class_id: body.class_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      visual_password_id: body.visual_password_id,
+    });
+
+    if (!userProfile) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'Failed to create user profile', 500)),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // TODO: Create BetterAuth user record
+    console.warn('BetterAuth user creation not fully implemented - profile created successfully');
+
+    const userSession: UserSession = {
+      id: userProfile.id,
+      email: userProfile.email,
+      username: userProfile.username || userProfile.email.split('@')[0],
+      full_name: userProfile.full_name || '',
+      role: userProfile.role,
+      class_id: userProfile.class_id,
+      created_at: userProfile.created_at,
+      updated_at: userProfile.updated_at,
     };
 
     return new Response(
-      JSON.stringify(createApiResponse(mockUser, null, 201, 'User created successfully')),
+      JSON.stringify(createApiResponse(userSession, null, 201, 'User created successfully')),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -155,22 +194,53 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
       );
     }
 
-    // TODO: Implement actual authentication with BetterAuth
-    console.warn('Sign in not fully implemented - using mock response');
+    let userProfile;
 
-    const mockUser: UserSession = {
-      id: 'mock-user-id',
-      email: body.email || `${body.full_name?.toLowerCase().replace(/\s+/g, '.')}@student.local`,
-      username: body.email?.split('@')[0] || body.full_name?.toLowerCase().replace(/\s+/g, ''),
-      full_name: body.full_name || 'Mock User',
-      role: isVisualAuth ? 'student' : 'teacher',
-      class_id: isVisualAuth ? 'mock-class-id' : undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    if (isVisualAuth) {
+      // Student visual password authentication
+      const authResult = await DatabaseService.authenticateStudentWithVisualPassword(
+        body.class_access_token!,
+        body.full_name!,
+        body.visual_password_id!
+      );
+
+      if (!authResult.success || !authResult.user) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, authResult.error || 'Student authentication failed', 401)),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      userProfile = authResult.user;
+    } else {
+      // Email/password authentication for teachers and admins
+      userProfile = await DatabaseService.getUserByEmail(body.email!);
+      
+      if (!userProfile) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'Invalid email or password', 401)),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // TODO: Verify password with BetterAuth
+      console.warn('Password verification not fully implemented - allowing login');
+    }
+
+    // Convert profile to session format
+    const userSession: UserSession = {
+      id: userProfile.id,
+      email: userProfile.email,
+      username: userProfile.username || userProfile.email.split('@')[0],
+      full_name: userProfile.full_name || '',
+      role: userProfile.role,
+      class_id: userProfile.class_id,
+      created_at: userProfile.created_at,
+      updated_at: userProfile.updated_at,
     };
 
     return new Response(
-      JSON.stringify(createApiResponse(mockUser, null, 200, 'Authentication successful')),
+      JSON.stringify(createApiResponse(userSession, null, 200, 'Authentication successful')),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {

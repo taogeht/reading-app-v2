@@ -2,20 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QrCode, Users, ArrowRight } from 'lucide-react';
 import { StudentLogin } from './StudentLogin';
-import { useStudentAuth } from '../contexts/StudentAuthContext';
+import { useAuth } from '../contexts/UnifiedAuthContext';
 
 export const ClassAccess: React.FC = () => {
   const { accessToken } = useParams<{ accessToken: string }>();
   const navigate = useNavigate();
-  const { session } = useStudentAuth();
+  const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     // If student is already logged in, redirect to assignments
-    if (session) {
+    if (user && user.role === 'student') {
       navigate('/assignments');
     }
-  }, [session, navigate]);
+  }, [user, navigate]);
 
   const handleGetStarted = () => {
     setShowLogin(true);

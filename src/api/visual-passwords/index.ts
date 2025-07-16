@@ -2,6 +2,7 @@
 // Handles visual password options for student authentication
 
 import { createApiResponse, ApiRequest } from '../index';
+import { DatabaseService } from '../../lib/database-service';
 
 export interface VisualPassword {
   id: string;
@@ -26,34 +27,11 @@ export async function handleVisualPasswordsRequest(request: ApiRequest): Promise
 
 async function handleGetVisualPasswords(request: ApiRequest): Promise<Response> {
   try {
-    // TODO: Fetch from database
-    console.warn('Get visual passwords not fully implemented - using mock data');
-
-    const mockVisualPasswords: VisualPassword[] = [
-      { id: '1', name: 'Cat', display_emoji: '🐱', category: 'animals', sort_order: 1 },
-      { id: '2', name: 'Dog', display_emoji: '🐶', category: 'animals', sort_order: 2 },
-      { id: '3', name: 'Lion', display_emoji: '🦁', category: 'animals', sort_order: 3 },
-      { id: '4', name: 'Elephant', display_emoji: '🐘', category: 'animals', sort_order: 4 },
-      { id: '5', name: 'Star', display_emoji: '⭐', category: 'shapes', sort_order: 5 },
-      { id: '6', name: 'Heart', display_emoji: '❤️', category: 'shapes', sort_order: 6 },
-      { id: '7', name: 'Circle', display_emoji: '⭕', category: 'shapes', sort_order: 7 },
-      { id: '8', name: 'Square', display_emoji: '◻️', category: 'shapes', sort_order: 8 },
-      { id: '9', name: 'Apple', display_emoji: '🍎', category: 'objects', sort_order: 9 },
-      { id: '10', name: 'Ball', display_emoji: '⚽', category: 'objects', sort_order: 10 },
-      { id: '11', name: 'Book', display_emoji: '📚', category: 'objects', sort_order: 11 },
-      { id: '12', name: 'Car', display_emoji: '🚗', category: 'objects', sort_order: 12 },
-    ];
-
-    // Sort by category and then by sort_order
-    const sortedPasswords = mockVisualPasswords.sort((a, b) => {
-      if (a.category !== b.category) {
-        return a.category.localeCompare(b.category);
-      }
-      return a.sort_order - b.sort_order;
-    });
+    // Fetch visual passwords from database
+    const visualPasswords = await DatabaseService.getVisualPasswords();
 
     return new Response(
-      JSON.stringify(createApiResponse(sortedPasswords, null, 200)),
+      JSON.stringify(createApiResponse(visualPasswords, null, 200)),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {

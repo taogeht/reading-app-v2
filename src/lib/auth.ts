@@ -47,7 +47,12 @@ export const getAuthConfig = () => {
     },
     secret: process.env.BETTER_AUTH_SECRET || "32-character-random-secret-key",
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
-    trustedOrigins: ["http://localhost:5173", "http://localhost:3000"],
+    trustedOrigins: [
+      "http://localhost:5173", 
+      "http://localhost:3000",
+      "http://localhost:5174", // Vite preview port
+      process.env.BETTER_AUTH_URL || "http://localhost:5173"
+    ].filter(Boolean),
   };
 };
 
