@@ -57,8 +57,8 @@ export const FeedbackDisplay: React.FC<FeedbackDisplayProps> = ({
           {getAccuracyIcon(feedback.accuracy)}
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Your Reading Analysis</h2>
-          <p className="text-gray-600">Powered by Local Whisper AI</p>
+          <h2 className="text-2xl font-bold text-gray-800">Your Reading Practice</h2>
+          <p className="text-gray-600">Recording completed successfully</p>
         </div>
       </div>
 
@@ -152,109 +152,47 @@ export const FeedbackDisplay: React.FC<FeedbackDisplayProps> = ({
         </div>
       </div>
 
-      {/* Full Transcription */}
+      {/* Reading Status */}
       <div className="mb-8">
         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-blue-600" />
-          What You Said
+          Reading Status
         </h3>
         <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-          <div className="text-lg text-gray-700 italic leading-relaxed">
-            "{feedback.transcript}"
+          <div className="text-lg text-gray-700 leading-relaxed">
+            Great job completing your reading practice! Your audio has been recorded successfully.
           </div>
           <div className="text-sm text-blue-600 mt-3 font-medium">
-            📝 This is exactly what our AI heard you say
+            🎯 Keep practicing to improve your reading skills
           </div>
         </div>
       </div>
 
-      {/* Word Analysis */}
+      {/* Practice Summary */}
       <div className="mb-8">
         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <span>🔍</span>
-          Word-by-Word Comparison
+          <span>📝</span>
+          Practice Summary
         </h3>
         <div className="bg-gray-50 rounded-xl p-6 border">
-          <div className="space-y-3">
-            {feedback.wordAnalysis.map((analysis, index) => (
-              <div
-                key={index}
-                className={`p-3 rounded-lg border-l-4 ${
-                  analysis.status === 'correct' ? 'border-green-500 bg-green-50' :
-                  analysis.status === 'incorrect' ? 'border-orange-500 bg-orange-50' :
-                  analysis.status === 'missed' ? 'border-red-500 bg-red-50' :
-                  'border-purple-500 bg-purple-50'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-gray-600">Expected:</span>
-                      <span className="font-semibold text-gray-800">
-                        {analysis.status === 'extra' ? '(not in original)' : analysis.originalWord}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600">You said:</span>
-                      <span className={`font-semibold ${
-                        analysis.status === 'correct' ? 'text-green-700' :
-                        analysis.status === 'incorrect' ? 'text-orange-700' :
-                        analysis.status === 'missed' ? 'text-red-700 italic' :
-                        'text-purple-700'
-                      }`}>
-                        {analysis.spokenWord || '(not spoken)'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      analysis.status === 'correct' ? 'bg-green-200 text-green-800' :
-                      analysis.status === 'incorrect' ? 'bg-orange-200 text-orange-800' :
-                      analysis.status === 'missed' ? 'bg-red-200 text-red-800' :
-                      'bg-purple-200 text-purple-800'
-                    }`}>
-                      {analysis.status === 'correct' ? '✓ Correct' :
-                       analysis.status === 'incorrect' ? '⚠ Different' :
-                       analysis.status === 'missed' ? '❌ Missed' :
-                       '+ Extra'}
-                    </span>
-                    {analysis.confidence && (
-                      <span className="text-xs text-gray-500">
-                        {Math.round(analysis.confidence * 100)}% confident
-                      </span>
-                    )}
-                    {analysis.timing && (
-                      <span className="text-xs text-gray-400">
-                        {analysis.timing.startTime.toFixed(1)}s-{analysis.timing.endTime.toFixed(1)}s
-                      </span>
-                    )}
-                  </div>
+          <div className="text-center">
+            <div className="text-lg text-gray-700 mb-4">
+              You practiced reading "{story.title}" successfully!
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="text-sm font-medium text-blue-800 mb-1">Story Information</div>
+                <div className="text-xs text-blue-600">
+                  Grade Level: {story.gradeLevel} | Word Count: {story.wordCount}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="mb-8">
-        <h4 className="text-lg font-semibold text-gray-800 mb-3">Reading Analysis Legend</h4>
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-            <div className="w-4 h-4 bg-green-200 border border-green-300 rounded"></div>
-            <span className="text-sm text-green-800 font-medium">Correct pronunciation</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-            <div className="w-4 h-4 bg-orange-200 border border-orange-300 rounded"></div>
-            <span className="text-sm text-orange-800 font-medium">Different pronunciation</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-            <div className="w-4 h-4 bg-red-200 border border-red-300 rounded"></div>
-            <span className="text-sm text-red-800 font-medium">Word skipped</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-            <div className="w-4 h-4 bg-purple-200 border border-purple-300 rounded"></div>
-            <span className="text-sm text-purple-800 font-medium">Extra word added</span>
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="text-sm font-medium text-green-800 mb-1">Reading Complete</div>
+                <div className="text-xs text-green-600">
+                  Great job practicing your reading skills!
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

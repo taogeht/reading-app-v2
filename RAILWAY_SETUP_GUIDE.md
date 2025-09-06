@@ -59,8 +59,9 @@ For local development with Railway database:
 ```env
 # .env.local (for development only)
 DATABASE_URL="your-railway-database-url-here"
-VITE_WHISPER_SERVER_URL="http://nextcloud.bryceinasia.com:8000"
-VITE_PREFERRED_SPEECH_SERVICE="whisper"
+BETTER_AUTH_SECRET="your-32-character-random-secret"
+BETTER_AUTH_URL="http://localhost:5173"
+VITE_BETTER_AUTH_URL="http://localhost:5173"
 ```
 
 ⚠️ **Important**: Never commit the actual `DATABASE_URL` to version control. Use Railway's environment variable management for production.

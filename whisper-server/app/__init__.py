@@ -1,1 +1,0 @@
-# Whisper Server App Package
