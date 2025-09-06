@@ -15,10 +15,15 @@ async function initializeDatabase() {
     const pg = await import('pg');
     const { Pool } = pg.default || pg;
     
+    // Check for required DATABASE_URL environment variable
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required for database connection');
+    }
+
     // Database configuration
     const databaseConfig = {
-      // Use DATABASE_URL if available (Railway format)
-      connectionString: process.env.DATABASE_URL || "postgresql://postgres:NZvYoxZRFEpiOmpKzVrCHCbyDfXNqKAH@caboose.proxy.rlwy.net:27141/railway",
+      // Use DATABASE_URL from environment variables (Railway format)
+      connectionString: process.env.DATABASE_URL,
       
       // Connection pool settings
       max: 20, // Maximum number of clients in the pool
