@@ -7,7 +7,8 @@ export default defineConfig({
     host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
     strictPort: true,
-    cors: true
+    cors: true,
+    allowedHosts: ['healthcheck.railway.app', 'localhost', '127.0.0.1']
   },
   server: {
     host: '0.0.0.0'
