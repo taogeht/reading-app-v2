@@ -13,14 +13,48 @@ let authError = null;
 if (!isBrowser) {
   try {
     console.log('🔐 Initializing BetterAuth server...');
-    console.log('Database URL present:', !!process.env.DATABASE_URL);
-    console.log('BetterAuth secret present:', !!process.env.BETTER_AUTH_SECRET);
-    console.log('Base URL:', process.env.BETTER_AUTH_URL);
+    console.log('Available environment variables:', Object.keys(process.env).filter(key => 
+      key.includes('DATABASE') || key.includes('AUTH') || key.includes('PG') || key.includes('POSTGRES')
+    ));
+    
+    // Try to get database URL from various possible sources
+    const databaseUrl = process.env.DATABASE_URL || 
+                       process.env.POSTGRES_URL || 
+                       process.env.DATABASE_PRIVATE_URL ||
+                       `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+    
+    const betterAuthSecret = process.env.BETTER_AUTH_SECRET || 
+                            process.env.AUTH_SECRET ||
+                            '57f95202d0fef924e6e4b6ff1c0d3fffc55dd6d4312b61fcf6aa02cab528c506'; // Fallback
+    
+    const baseUrl = process.env.BETTER_AUTH_URL || 
+                   process.env.RAILWAY_STATIC_URL || 
+                   process.env.RAILWAY_PUBLIC_DOMAIN ||
+                   'https://reading-app-v2-production.up.railway.app';
+    
+    console.log('Database URL present:', !!databaseUrl);
+    console.log('Database URL preview:', databaseUrl.substring(0, 50) + '...');
+    console.log('BetterAuth secret present:', !!betterAuthSecret);
+    console.log('BetterAuth secret length:', betterAuthSecret.length);
+    console.log('Base URL:', baseUrl);
+    console.log('Node environment:', process.env.NODE_ENV);
+    
+    // Check if required environment variables are present
+    if (!databaseUrl || databaseUrl === 'postgresql://undefined:undefined@undefined:undefined/undefined') {
+      throw new Error('No valid DATABASE_URL found in environment variables');
+    }
+    
+    // Ensure the DATABASE_URL includes SSL mode for Railway
+    const finalDatabaseUrl = databaseUrl.includes('?sslmode=') 
+      ? databaseUrl 
+      : databaseUrl + '?sslmode=require';
+    
+    console.log('🔗 Using database URL with SSL:', finalDatabaseUrl.substring(0, 50) + '...');
     
     auth = betterAuth({
       database: {
         provider: "pg",
-        url: process.env.DATABASE_URL!,
+        url: finalDatabaseUrl,
       },
       emailAndPassword: {
         enabled: true,
@@ -53,14 +87,14 @@ if (!isBrowser) {
         expiresIn: 60 * 60 * 24 * 7, // 7 days
         updateAge: 60 * 60 * 24, // 24 hours
       },
-      secret: process.env.BETTER_AUTH_SECRET!,
-      baseURL: process.env.BETTER_AUTH_URL || "https://reading-app-v2-production.up.railway.app",
+      secret: betterAuthSecret,
+      baseURL: baseUrl,
       trustedOrigins: [
+        baseUrl,
         "https://reading-app-v2-production.up.railway.app",
         "http://localhost:5173", 
         "http://localhost:3000",
         "http://localhost:5174", // Vite preview port
-        process.env.BETTER_AUTH_URL || "https://reading-app-v2-production.up.railway.app"
       ].filter(Boolean),
     });
     
