@@ -174,7 +174,7 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
     }
 
     // For email/password users, create through BetterAuth if available
-    if (body.password && authAvailable) {
+    if (body.password && await isAuthAvailable()) {
       try {
         const auth = await getAuth();
         
@@ -306,7 +306,8 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
       userProfile = authResult.user;
     } else {
       // Email/password authentication through BetterAuth if available
-      if (authAvailable) {
+      const authAvailableForSignIn = await isAuthAvailable();
+      if (authAvailableForSignIn) {
         try {
           const auth = await getAuth();
           

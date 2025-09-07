@@ -148,7 +148,16 @@ export async function handleApiRequest(request: Request): Promise<Response> {
       case 'health':
         return await handleHealthRequest(apiRequest);
       case 'auth':
-        return await handleAuthRequest(apiRequest);
+        try {
+          console.log('🔐 About to handle auth request');
+          return await handleAuthRequest(apiRequest);
+        } catch (error) {
+          console.error('🔐 Auth handler error:', error);
+          return new Response(
+            JSON.stringify(createApiResponse(null, `Auth handler failed: ${error.message}`, 500)),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       case 'users':
         return await handleUsersRequest(apiRequest, id, subResource);
       case 'classes':
