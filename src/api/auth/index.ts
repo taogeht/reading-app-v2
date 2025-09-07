@@ -3,7 +3,7 @@
 
 import { createApiResponse, ApiRequest } from '../index';
 import { DatabaseService } from '../../lib/database-service';
-import { getAuth } from '../../lib/better-auth-server';
+import { getAuth, isAuthAvailable, getAuthError } from '../../lib/better-auth-server';
 
 export interface SignUpRequest {
   email: string;
@@ -38,12 +38,22 @@ export interface UserSession {
 
 // Handle authentication requests
 export async function handleAuthRequest(request: ApiRequest): Promise<Response> {
-  console.log('Auth request received:', request.method, request.url);
+  console.log('🔐 Auth request received:', request.method, request.url);
   
-  // First try BetterAuth's built-in handler
-  try {
-    const auth = getAuth();
-    if (auth) {
+  // Check BetterAuth availability and report status
+  if (!isAuthAvailable()) {
+    const authError = getAuthError();
+    console.warn('⚠️ BetterAuth not available:', authError?.message || 'Not initialized');
+    console.log('📋 Using fallback authentication handlers');
+  } else {
+    console.log('✅ BetterAuth available, attempting integration');
+  }
+  
+  // Try BetterAuth's built-in handler if available
+  if (isAuthAvailable()) {
+    try {
+      const auth = getAuth();
+      
       // Convert ApiRequest back to Web API Request for BetterAuth
       const headers = new Headers();
       Object.entries(request.headers).forEach(([key, value]) => {
@@ -56,17 +66,19 @@ export async function handleAuthRequest(request: ApiRequest): Promise<Response> 
         body: request.body ? JSON.stringify(request.body) : undefined
       });
 
-      console.log('Passing to BetterAuth handler:', webRequest.url);
+      console.log('🔄 Passing to BetterAuth handler:', webRequest.url);
       const response = await auth.handler(webRequest);
       
       // If BetterAuth handled it successfully, return the response
       if (response.status !== 404) {
-        console.log('BetterAuth handled request:', response.status);
+        console.log('✅ BetterAuth handled request:', response.status);
         return response;
       }
+      
+      console.log('🔄 BetterAuth returned 404, falling back to custom handlers');
+    } catch (error) {
+      console.warn('❌ BetterAuth handler failed, using custom fallbacks:', error.message);
     }
-  } catch (error) {
-    console.warn('BetterAuth handler failed, using custom fallbacks:', error.message);
   }
 
   // Fallback to custom handlers for student visual auth and other special cases
@@ -160,11 +172,12 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
       body.class_id = classInfo.id; // Set the class_id from the access token
     }
 
-    // For email/password users, create through BetterAuth
-    if (body.password) {
+    // For email/password users, create through BetterAuth if available
+    if (body.password && isAuthAvailable()) {
       try {
         const auth = getAuth();
         
+        console.log('🔄 Creating user through BetterAuth API');
         // Create user through BetterAuth for proper password hashing and session management
         const authResult = await auth.api.signUpEmail({
           body: {
@@ -201,9 +214,11 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
           { status: 201, headers: { 'Content-Type': 'application/json' } }
         );
       } catch (error) {
-        console.error('BetterAuth signup failed, creating manually:', error);
+        console.error('❌ BetterAuth signup failed, creating manually:', error);
         // Fall through to manual creation
       }
+    } else if (body.password) {
+      console.log('⚠️ BetterAuth not available, using manual user creation');
     }
 
     // For visual password students or BetterAuth failures, create manually
@@ -289,16 +304,18 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
 
       userProfile = authResult.user;
     } else {
-      // Email/password authentication through BetterAuth
-      try {
-        const auth = getAuth();
-        
-        const authResult = await auth.api.signInEmail({
-          body: {
-            email: body.email!,
-            password: body.password!
-          }
-        });
+      // Email/password authentication through BetterAuth if available
+      if (isAuthAvailable()) {
+        try {
+          const auth = getAuth();
+          
+          console.log('🔄 Authenticating through BetterAuth API');
+          const authResult = await auth.api.signInEmail({
+            body: {
+              email: body.email!,
+              password: body.password!
+            }
+          });
 
         if (authResult.error) {
           return new Response(
@@ -331,22 +348,26 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
         }
 
         return response;
-      } catch (error) {
-        console.error('BetterAuth sign-in failed, falling back to manual verification:', error);
-        
-        // Fallback to manual verification
-        userProfile = await DatabaseService.getUserByEmail(body.email!);
-        
-        if (!userProfile) {
-          return new Response(
-            JSON.stringify(createApiResponse(null, 'Invalid email or password', 401)),
-            { status: 401, headers: { 'Content-Type': 'application/json' } }
-          );
+        } catch (error) {
+          console.error('❌ BetterAuth sign-in failed, falling back to manual verification:', error);
+          // Fall through to manual fallback
         }
-
-        // TODO: Add manual password verification for fallback
-        console.warn('Password verification temporarily disabled - allowing login');
+      } else {
+        console.log('⚠️ BetterAuth not available, using manual authentication');
       }
+      
+      // Fallback to manual verification
+      userProfile = await DatabaseService.getUserByEmail(body.email!);
+      
+      if (!userProfile) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'Invalid email or password', 401)),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // TODO: Add manual password verification for fallback
+      console.warn('⚠️ Password verification temporarily disabled - allowing login');
     }
 
     // Convert profile to session format (for fallback cases)

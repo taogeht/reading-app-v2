@@ -52,8 +52,25 @@ export default defineConfig({
 // Shared middleware function for both dev and preview
 async function handleApiMiddleware(req: any, res: any, next: any) {
   try {
-    // Import API handler dynamically
-    const { handleApiRequest } = await import('./src/api/index');
+    console.log(`🔍 API middleware - ${req.method} ${req.url}`);
+    
+    // Import API handler dynamically with error handling
+    let handleApiRequest;
+    try {
+      const apiModule = await import('./src/api/index');
+      handleApiRequest = apiModule.handleApiRequest;
+      console.log('✅ API handler imported successfully');
+    } catch (importError) {
+      console.error('❌ Failed to import API handler:', importError);
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ 
+        error: 'API Handler Import Failed',
+        details: importError.message,
+        stack: importError.stack
+      }));
+      return;
+    }
     
     // Convert Node.js request to Web API Request
     const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -73,9 +90,11 @@ async function handleApiMiddleware(req: any, res: any, next: any) {
       body: body || undefined,
     });
     
-    console.log('API middleware - Request:', req.method, url.pathname);
+    console.log(`📨 Processing API request: ${req.method} ${url.pathname}`);
 
     const response = await handleApiRequest(request);
+    
+    console.log(`✅ API response: ${response.status}`);
     
     // Convert Web API Response back to Node.js response
     res.statusCode = response.status;
@@ -86,9 +105,14 @@ async function handleApiMiddleware(req: any, res: any, next: any) {
     const responseBody = await response.text();
     res.end(responseBody);
   } catch (error) {
-    console.error('API middleware error:', error);
+    console.error('❌ API middleware error:', error);
+    console.error('Error stack:', error.stack);
     res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ error: 'Internal Server Error' }));
+    res.end(JSON.stringify({ 
+      error: 'API Middleware Error',
+      message: error.message,
+      stack: error.stack
+    }));
   }
 }
