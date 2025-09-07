@@ -17,7 +17,6 @@ interface ClassFormData {
   grade_level: number;
   teacher_id: string;
   is_active: boolean;
-  max_students: number;
   school_year: string;
 }
 
@@ -33,7 +32,6 @@ export const ClassModal: React.FC<ClassModalProps> = ({
     grade_level: 1,
     teacher_id: '',
     is_active: true,
-    max_students: 25,
     school_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)
   });
   const [teachers, setTeachers] = useState<UserProfile[]>([]);
@@ -59,7 +57,6 @@ export const ClassModal: React.FC<ClassModalProps> = ({
         grade_level: classData.grade_level,
         teacher_id: classData.teacher_id || '',
         is_active: classData.is_active,
-        max_students: classData.max_students || 25,
         school_year: classData.school_year || new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)
       });
     } else {
@@ -69,7 +66,6 @@ export const ClassModal: React.FC<ClassModalProps> = ({
         grade_level: 1,
         teacher_id: '',
         is_active: true,
-        max_students: 25,
         school_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)
       });
     }
@@ -106,11 +102,6 @@ export const ClassModal: React.FC<ClassModalProps> = ({
       errors.grade_level = 'Grade level must be between 1 and 12';
     }
 
-    if (formData.max_students < 1) {
-      errors.max_students = 'Maximum students must be at least 1';
-    } else if (formData.max_students > 100) {
-      errors.max_students = 'Maximum students cannot exceed 100';
-    }
 
     if (!formData.school_year.trim()) {
       errors.school_year = 'School year is required';
@@ -135,16 +126,22 @@ export const ClassModal: React.FC<ClassModalProps> = ({
     try {
       if (isEditing && classData) {
         // Update existing class
-        await classService.updateClass(classData.id, formData);
+        await classService.update(classData.id, {
+          name: formData.name,
+          grade_level: formData.grade_level,
+          school_year: formData.school_year,
+          description: formData.description,
+          is_active: formData.is_active,
+        });
       } else {
         // Create new class
-        await classService.createClass({
+        await classService.create({
           name: formData.name,
           grade_level: formData.grade_level,
           teacher_id: formData.teacher_id,
           school_year: formData.school_year,
           description: formData.description,
-          max_students: formData.max_students,
+          is_active: formData.is_active,
         });
       }
 
@@ -276,7 +273,7 @@ export const ClassModal: React.FC<ClassModalProps> = ({
                 <option value="">Select a teacher</option>
                 {teachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
-                    {teacher.full_name} ({teacher.email})
+                    {teacher.full_name} ({teacher.username})
                   </option>
                 ))}
               </select>
@@ -306,30 +303,6 @@ export const ClassModal: React.FC<ClassModalProps> = ({
             )}
           </div>
 
-          {/* Maximum Students */}
-          <div>
-            <label htmlFor="max_students" className="block text-sm font-medium text-gray-700 mb-1">
-              Maximum Students
-            </label>
-            <input
-              type="number"
-              id="max_students"
-              min="1"
-              max="100"
-              value={formData.max_students}
-              onChange={(e) => handleInputChange('max_students', parseInt(e.target.value) || 0)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                validationErrors.max_students ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="25"
-            />
-            {validationErrors.max_students && (
-              <p className="text-red-600 text-xs mt-1">{validationErrors.max_students}</p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Set the maximum number of students that can be enrolled in this class
-            </p>
-          </div>
 
           {/* Active Status */}
           <div className="flex items-center gap-3">
