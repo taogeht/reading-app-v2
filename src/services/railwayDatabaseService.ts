@@ -84,6 +84,11 @@ export const profileService = {
     return [];
   },
 
+  async getTeachers(): Promise<UserProfile[]> {
+    console.warn('profileService.getTeachers not implemented - using mock');
+    return [];
+  },
+
   async create(profile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> {
     console.warn('profileService.create not implemented - using mock');
     return {
