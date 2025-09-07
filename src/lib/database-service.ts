@@ -4,6 +4,7 @@
 import { pool } from './database';
 import { UserSession } from '../api/auth/index';
 import { VisualPassword } from '../api/visual-passwords/index';
+import bcrypt from 'bcrypt';
 
 export interface DatabaseUserProfile {
   id: string;
@@ -13,6 +14,7 @@ export interface DatabaseUserProfile {
   role: 'student' | 'teacher' | 'admin';
   class_id: string | null;
   visual_password_id: string | null;
+  password_hash?: string | null; // For teachers/admins
   created_at: string;
   updated_at: string;
 }
@@ -707,6 +709,97 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error deleting recording:', error);
       return false;
+    }
+  }
+
+  // Password hashing and verification methods
+  static async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12; // High security
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  static async verifyPassword(password: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(password, hash);
+  }
+
+  // Authenticate teacher/admin with email and password
+  static async authenticateEmailPassword(email: string, password: string): Promise<DatabaseUserProfile | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.authenticateEmailPassword not available - pool not ready');
+      return null;
+    }
+
+    try {
+      const result = await pool.query(
+        'SELECT * FROM profiles WHERE email = $1 AND role IN ($2, $3) LIMIT 1',
+        [email, 'teacher', 'admin']
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const user = result.rows[0];
+      
+      // Check if user has a password hash
+      if (!user.password_hash) {
+        console.warn('User has no password hash:', email);
+        return null;
+      }
+
+      // Verify password
+      const isValid = await this.verifyPassword(password, user.password_hash);
+      if (!isValid) {
+        return null;
+      }
+
+      // Remove password hash from returned data
+      delete user.password_hash;
+      return user;
+    } catch (error) {
+      console.error('Error authenticating email/password:', error);
+      return null;
+    }
+  }
+
+  // Create user with hashed password (for teachers/admins)
+  static async createUserWithPassword(userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    role: 'teacher' | 'admin';
+    username?: string;
+  }): Promise<DatabaseUserProfile | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.createUserWithPassword not available - pool not ready');
+      return null;
+    }
+
+    try {
+      // Hash the password
+      const password_hash = await this.hashPassword(userData.password);
+
+      const result = await pool.query(
+        `INSERT INTO profiles (
+          email, username, full_name, role, password_hash,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING id, email, username, full_name, role, class_id, visual_password_id, created_at, updated_at`,
+        [
+          userData.email,
+          userData.username || userData.email.split('@')[0],
+          userData.full_name,
+          userData.role,
+          password_hash,
+        ]
+      );
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating user with password:', error);
+      return null;
     }
   }
 }

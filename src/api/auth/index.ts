@@ -1,9 +1,9 @@
-// Authentication API routes
-// Unified authentication for all user types (students, teachers, admins)
+// Authentication API routes  
+// Simple custom authentication for all user types (students, teachers, admins)
 
 import { createApiResponse, ApiRequest } from '../index';
 import { DatabaseService } from '../../lib/database-service';
-import { getAuth, isAuthAvailable, getAuthError } from '../../lib/better-auth-server';
+import { SessionManager, UserSession } from '../../lib/session-manager';
 
 export interface SignUpRequest {
   email: string;
@@ -25,67 +25,16 @@ export interface SignInRequest {
   class_access_token?: string;
 }
 
-export interface UserSession {
-  id: string;
-  email: string;
-  username?: string;
-  full_name: string;
-  role: 'student' | 'teacher' | 'admin';
-  class_id?: string;
-  created_at: string;
-  updated_at: string;
-}
+// UserSession interface is now in session-manager.ts
 
 // Handle authentication requests
 export async function handleAuthRequest(request: ApiRequest): Promise<Response> {
   console.log('🔐 Auth request received:', request.method, request.url);
   
-  // Check BetterAuth availability and report status
-  const authAvailable = await isAuthAvailable();
-  if (!authAvailable) {
-    const authError = getAuthError();
-    console.warn('⚠️ BetterAuth not available:', authError?.message || 'Not initialized');
-    console.log('📋 Using fallback authentication handlers');
-  } else {
-    console.log('✅ BetterAuth available, attempting integration');
-  }
-  
-  // Try BetterAuth's built-in handler if available
-  if (authAvailable) {
-    try {
-      const auth = await getAuth();
-      
-      // Convert ApiRequest back to Web API Request for BetterAuth
-      const headers = new Headers();
-      Object.entries(request.headers).forEach(([key, value]) => {
-        headers.set(key, value);
-      });
-
-      const webRequest = new Request(`${process.env.BETTER_AUTH_URL || 'http://localhost:5173'}${request.url}`, {
-        method: request.method,
-        headers,
-        body: request.body ? JSON.stringify(request.body) : undefined
-      });
-
-      console.log('🔄 Passing to BetterAuth handler:', webRequest.url);
-      const response = await auth.handler(webRequest);
-      
-      // If BetterAuth handled it successfully, return the response
-      if (response.status !== 404) {
-        console.log('✅ BetterAuth handled request:', response.status);
-        return response;
-      }
-      
-      console.log('🔄 BetterAuth returned 404, falling back to custom handlers');
-    } catch (error) {
-      console.warn('❌ BetterAuth handler failed, using custom fallbacks:', error.message);
-    }
-  }
-
-  // Fallback to custom handlers for student visual auth and other special cases
+  // Parse endpoint from URL
   const pathParts = request.url.split('/').filter(Boolean);
   const endpoint = pathParts[pathParts.length - 1];
-  console.log('Using custom handler for endpoint:', endpoint);
+  console.log('🔄 Using custom authentication for endpoint:', endpoint);
 
   switch (request.method) {
     case 'POST':
@@ -161,6 +110,15 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
       }
     }
 
+    // Check if user already exists
+    const existingUser = await DatabaseService.getUserByEmail(body.email);
+    if (existingUser) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'User already exists with this email', 409)),
+        { status: 409, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // For students with class access token, verify class exists
     if (body.role === 'student' && body.class_access_token) {
       const classInfo = await DatabaseService.getClassByAccessToken(body.class_access_token);
@@ -173,72 +131,29 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
       body.class_id = classInfo.id; // Set the class_id from the access token
     }
 
-    // For email/password users, create through BetterAuth if available
-    if (body.password && await isAuthAvailable()) {
-      try {
-        const auth = await getAuth();
-        
-        console.log('🔄 Creating user through BetterAuth API');
-        // Create user through BetterAuth for proper password hashing and session management
-        const authResult = await auth.api.signUpEmail({
-          body: {
-            email: body.email,
-            password: body.password,
-            name: body.full_name,
-            username: body.username,
-            role: body.role,
-            class_id: body.class_id,
-            full_name: body.full_name
-          }
-        });
+    let userProfile;
 
-        if (authResult.error) {
-          return new Response(
-            JSON.stringify(createApiResponse(null, authResult.error, 400)),
-            { status: 400, headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const userSession: UserSession = {
-          id: authResult.data.user.id,
-          email: authResult.data.user.email,
-          username: authResult.data.user.username || authResult.data.user.email.split('@')[0],
-          full_name: authResult.data.user.full_name || authResult.data.user.name || '',
-          role: authResult.data.user.role,
-          class_id: authResult.data.user.class_id,
-          created_at: authResult.data.user.createdAt,
-          updated_at: authResult.data.user.updatedAt,
-        };
-
-        return new Response(
-          JSON.stringify(createApiResponse(userSession, null, 201, 'User created successfully')),
-          { status: 201, headers: { 'Content-Type': 'application/json' } }
-        );
-      } catch (error) {
-        console.error('❌ BetterAuth signup failed, creating manually:', error);
-        // Fall through to manual creation
-      }
-    } else if (body.password) {
-      console.log('⚠️ BetterAuth not available, using manual user creation');
+    // Create user based on type
+    if (body.role === 'student') {
+      // Create student with visual password (existing method)
+      userProfile = await DatabaseService.createUserProfile({
+        email: body.email,
+        full_name: body.full_name,
+        role: body.role,
+        username: body.username,
+        class_id: body.class_id,
+        visual_password_id: body.visual_password_id,
+      });
+    } else {
+      // Create teacher/admin with password hash
+      userProfile = await DatabaseService.createUserWithPassword({
+        email: body.email,
+        password: body.password!,
+        full_name: body.full_name,
+        role: body.role as 'teacher' | 'admin',
+        username: body.username,
+      });
     }
-
-    // For visual password students or BetterAuth failures, create manually
-    const existingUser = await DatabaseService.getUserByEmail(body.email);
-    if (existingUser) {
-      return new Response(
-        JSON.stringify(createApiResponse(null, 'User already exists with this email', 409)),
-        { status: 409, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userProfile = await DatabaseService.createUserProfile({
-      email: body.email,
-      full_name: body.full_name,
-      role: body.role,
-      username: body.username,
-      class_id: body.class_id,
-      visual_password_id: body.visual_password_id,
-    });
 
     if (!userProfile) {
       return new Response(
@@ -247,21 +162,18 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
       );
     }
 
-    const userSession: UserSession = {
-      id: userProfile.id,
-      email: userProfile.email,
-      username: userProfile.username || userProfile.email.split('@')[0],
-      full_name: userProfile.full_name || '',
-      role: userProfile.role,
-      class_id: userProfile.class_id,
-      created_at: userProfile.created_at,
-      updated_at: userProfile.updated_at,
-    };
+    // Create session for the new user
+    const session = SessionManager.createSession(userProfile);
 
-    return new Response(
-      JSON.stringify(createApiResponse(userSession, null, 201, 'User created successfully')),
+    const response = new Response(
+      JSON.stringify(createApiResponse(session.user, null, 201, 'User created successfully')),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
+
+    // Set session cookie
+    response.headers.set('Set-Cookie', `session_token=${session.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+
+    return response;
   } catch (error) {
     console.error('Sign up error:', error);
     return new Response(
@@ -289,7 +201,7 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
     let userProfile;
 
     if (isVisualAuth) {
-      // Student visual password authentication (custom flow)
+      // Student visual password authentication (existing custom flow)
       const authResult = await DatabaseService.authenticateStudentWithVisualPassword(
         body.class_access_token!,
         body.full_name!,
@@ -305,61 +217,10 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
 
       userProfile = authResult.user;
     } else {
-      // Email/password authentication through BetterAuth if available
-      const authAvailableForSignIn = await isAuthAvailable();
-      if (authAvailableForSignIn) {
-        try {
-          const auth = await getAuth();
-          
-          console.log('🔄 Authenticating through BetterAuth API');
-          const authResult = await auth.api.signInEmail({
-            body: {
-              email: body.email!,
-              password: body.password!
-            }
-          });
-
-        if (authResult.error) {
-          return new Response(
-            JSON.stringify(createApiResponse(null, 'Invalid email or password', 401)),
-            { status: 401, headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Convert BetterAuth user to our session format
-        const userSession: UserSession = {
-          id: authResult.data.user.id,
-          email: authResult.data.user.email,
-          username: authResult.data.user.username || authResult.data.user.email.split('@')[0],
-          full_name: authResult.data.user.full_name || authResult.data.user.name || '',
-          role: authResult.data.user.role,
-          class_id: authResult.data.user.class_id,
-          created_at: authResult.data.user.createdAt,
-          updated_at: authResult.data.user.updatedAt,
-        };
-
-        // Set session cookies
-        const response = new Response(
-          JSON.stringify(createApiResponse(userSession, null, 200, 'Authentication successful')),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-
-        // Copy session cookies from BetterAuth response
-        if (authResult.data.session) {
-          response.headers.set('Set-Cookie', `better-auth.session_token=${authResult.data.session.token}; HttpOnly; Secure; SameSite=Strict; Path=/`);
-        }
-
-        return response;
-        } catch (error) {
-          console.error('❌ BetterAuth sign-in failed, falling back to manual verification:', error);
-          // Fall through to manual fallback
-        }
-      } else {
-        console.log('⚠️ BetterAuth not available, using manual authentication');
-      }
+      // Email/password authentication for teachers/admins
+      console.log('🔄 Authenticating teacher/admin with email/password');
       
-      // Fallback to manual verification
-      userProfile = await DatabaseService.getUserByEmail(body.email!);
+      userProfile = await DatabaseService.authenticateEmailPassword(body.email!, body.password!);
       
       if (!userProfile) {
         return new Response(
@@ -367,27 +228,20 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
           { status: 401, headers: { 'Content-Type': 'application/json' } }
         );
       }
-
-      // TODO: Add manual password verification for fallback
-      console.warn('⚠️ Password verification temporarily disabled - allowing login');
     }
 
-    // Convert profile to session format (for fallback cases)
-    const userSession: UserSession = {
-      id: userProfile.id,
-      email: userProfile.email,
-      username: userProfile.username || userProfile.email.split('@')[0],
-      full_name: userProfile.full_name || '',
-      role: userProfile.role,
-      class_id: userProfile.class_id,
-      created_at: userProfile.created_at,
-      updated_at: userProfile.updated_at,
-    };
+    // Create session for authenticated user
+    const session = SessionManager.createSession(userProfile);
 
-    return new Response(
-      JSON.stringify(createApiResponse(userSession, null, 200, 'Authentication successful')),
+    const response = new Response(
+      JSON.stringify(createApiResponse(session.user, null, 200, 'Authentication successful')),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
+
+    // Set session cookie
+    response.headers.set('Set-Cookie', `session_token=${session.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+
+    return response;
   } catch (error) {
     console.error('Sign in error:', error);
     return new Response(
@@ -399,13 +253,23 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
 
 async function handleSignOut(request: ApiRequest): Promise<Response> {
   try {
-    // TODO: Implement actual session invalidation with BetterAuth
-    console.warn('Sign out not fully implemented - using mock response');
+    // Extract session token and destroy session
+    const sessionToken = SessionManager.extractSessionToken(request.headers);
+    
+    if (sessionToken) {
+      SessionManager.destroySession(sessionToken);
+      console.log('🔓 Session destroyed successfully');
+    }
 
-    return new Response(
+    const response = new Response(
       JSON.stringify(createApiResponse(null, null, 200, 'Signed out successfully')),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
+
+    // Clear session cookie
+    response.headers.set('Set-Cookie', 'session_token=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0');
+
+    return response;
   } catch (error) {
     console.error('Sign out error:', error);
     return new Response(
@@ -417,21 +281,27 @@ async function handleSignOut(request: ApiRequest): Promise<Response> {
 
 async function handleGetSession(request: ApiRequest): Promise<Response> {
   try {
-    // For now, use mock session while BetterAuth is being stabilized
-    console.warn('Session verification temporarily disabled - using mock admin session');
+    // Extract session token and get user session
+    const sessionToken = SessionManager.extractSessionToken(request.headers);
     
-    const mockUser: UserSession = {
-      id: 'admin-user-id',
-      email: 'admin@readingapp.com',
-      username: 'admin',
-      full_name: 'System Administrator',
-      role: 'admin',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    if (!sessionToken) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'No session token provided', 401)),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = SessionManager.getSession(sessionToken);
+    
+    if (!user) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'Invalid or expired session', 401)),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     return new Response(
-      JSON.stringify(createApiResponse(mockUser, null, 200)),
+      JSON.stringify(createApiResponse(user, null, 200)),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {

@@ -194,10 +194,9 @@ async function handleHealthRequest(request: ApiRequest): Promise<Response> {
   try {
     console.log('🏥 Health check requested');
     
-    // Check BetterAuth status
-    const { isAuthAvailable, getAuthError } = await import('../lib/better-auth-server');
-    const authStatus = await isAuthAvailable();
-    const authError = getAuthError();
+    // Check custom authentication status
+    const { SessionManager } = await import('../lib/session-manager');
+    const activeSessionsCount = SessionManager.getActiveSessionsCount();
     
     // Try a basic database connection test
     let dbStatus = 'unknown';
@@ -221,12 +220,11 @@ async function handleHealthRequest(request: ApiRequest): Promise<Response> {
       environment: {
         NODE_ENV: process.env.NODE_ENV,
         hasDbUrl: !!process.env.DATABASE_URL,
-        hasAuthSecret: !!process.env.BETTER_AUTH_SECRET,
       },
       services: {
-        betterauth: {
-          available: authStatus,
-          error: authError?.message || null
+        authentication: {
+          type: 'custom',
+          activeSessions: activeSessionsCount
         },
         database: {
           status: dbStatus,
