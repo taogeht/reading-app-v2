@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, Mail, Save, AlertCircle, Eye, Shuffle } from 'lucide-react';
+import { X, User, GraduationCap, Save, AlertCircle, Smile } from 'lucide-react';
 import { profileService, classService } from '../../services/railwayDatabaseService';
-import type { UserProfile } from '../../contexts/BetterAuthContext';
-import type { Class } from '../../services/railwayDatabaseService';
+import type { UserProfile, Class, VisualPassword } from '../../services/railwayDatabaseService';
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -13,16 +12,8 @@ interface StudentModalProps {
 
 interface StudentFormData {
   full_name: string;
-  email: string;
   class_id: string;
-  visual_password_id?: string;
-}
-
-interface VisualPassword {
-  id: string;
-  category: string;
-  name: string;
-  image_url: string;
+  visual_password_id: string;
 }
 
 export const StudentModal: React.FC<StudentModalProps> = ({
@@ -33,8 +24,8 @@ export const StudentModal: React.FC<StudentModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<StudentFormData>({
     full_name: '',
-    email: '',
-    class_id: ''
+    class_id: '',
+    visual_password_id: ''
   });
   const [classes, setClasses] = useState<Class[]>([]);
   const [visualPasswords, setVisualPasswords] = useState<VisualPassword[]>([]);
@@ -44,7 +35,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
 
   const isEditing = !!student;
 
-  // Load classes and visual passwords when modal opens
+  // Load data when modal opens
   useEffect(() => {
     if (isOpen) {
       loadClasses();
@@ -57,15 +48,14 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     if (student) {
       setFormData({
         full_name: student.full_name || '',
-        email: student.email,
         class_id: student.class_id || '',
         visual_password_id: student.visual_password_id || ''
       });
     } else {
       setFormData({
         full_name: '',
-        email: '',
-        class_id: ''
+        class_id: '',
+        visual_password_id: ''
       });
     }
     setError(null);
@@ -74,8 +64,9 @@ export const StudentModal: React.FC<StudentModalProps> = ({
 
   const loadClasses = async () => {
     try {
-      const classesData = await classService.getClasses();
-      setClasses(classesData);
+      const classesData = await classService.getAll();
+      // Filter to only active classes
+      setClasses(classesData.filter(c => c.is_active));
     } catch (err) {
       console.error('Error loading classes:', err);
     }
@@ -83,28 +74,17 @@ export const StudentModal: React.FC<StudentModalProps> = ({
 
   const loadVisualPasswords = async () => {
     try {
-      // Mock visual passwords - in real app, this would come from the database
-      const mockPasswords: VisualPassword[] = [
-        { id: 'cat', category: 'animals', name: 'Cat', image_url: '🐱' },
-        { id: 'dog', category: 'animals', name: 'Dog', image_url: '🐶' },
-        { id: 'star', category: 'shapes', name: 'Star', image_url: '⭐' },
-        { id: 'heart', category: 'shapes', name: 'Heart', image_url: '💖' },
-        { id: 'sun', category: 'objects', name: 'Sun', image_url: '☀️' },
-        { id: 'flower', category: 'objects', name: 'Flower', image_url: '🌸' },
-        { id: 'red', category: 'colors', name: 'Red', image_url: '🔴' },
-        { id: 'blue', category: 'colors', name: 'Blue', image_url: '🔵' }
-      ];
-      setVisualPasswords(mockPasswords);
+      const response = await fetch('/api/visual-passwords', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (result.status === 200) {
+        setVisualPasswords(result.data || []);
+      }
     } catch (err) {
       console.error('Error loading visual passwords:', err);
-    }
-  };
-
-  // Generate random visual password
-  const generateRandomPassword = () => {
-    if (visualPasswords.length > 0) {
-      const randomPassword = visualPasswords[Math.floor(Math.random() * visualPasswords.length)];
-      setFormData(prev => ({ ...prev, visual_password_id: randomPassword.id }));
     }
   };
 
@@ -113,17 +93,19 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     const errors: Record<string, string> = {};
 
     if (!formData.full_name.trim()) {
-      errors.full_name = 'Full name is required';
-    }
-
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.full_name = 'Student name is required';
+    } else if (formData.full_name.length < 2) {
+      errors.full_name = 'Name must be at least 2 characters';
+    } else if (formData.full_name.length > 50) {
+      errors.full_name = 'Name must be less than 50 characters';
     }
 
     if (!formData.class_id) {
       errors.class_id = 'Please select a class';
+    }
+
+    if (!formData.visual_password_id) {
+      errors.visual_password_id = 'Please select a visual password';
     }
 
     setValidationErrors(errors);
@@ -145,17 +127,18 @@ export const StudentModal: React.FC<StudentModalProps> = ({
         // Update existing student
         await profileService.updateStudent(student.id, {
           full_name: formData.full_name,
-          email: formData.email,
           class_id: formData.class_id,
           visual_password_id: formData.visual_password_id
         });
       } else {
         // Create new student
-        await profileService.createStudent({
+        await profileService.create({
           full_name: formData.full_name,
-          email: formData.email,
+          role: 'student',
           class_id: formData.class_id,
-          visual_password_id: formData.visual_password_id
+          visual_password_id: formData.visual_password_id,
+          email: `student.${Date.now()}@temp.local`, // Temporary email that won't be used
+          username: null
         });
       }
 
@@ -177,9 +160,15 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     }
   };
 
-  const getSelectedPassword = () => {
-    return visualPasswords.find(p => p.id === formData.visual_password_id);
-  };
+  // Group visual passwords by category
+  const groupedVisualPasswords = visualPasswords.reduce((groups, vp) => {
+    const category = vp.category;
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(vp);
+    return groups;
+  }, {} as Record<string, VisualPassword[]>);
 
   if (!isOpen) return null;
 
@@ -189,8 +178,8 @@ export const StudentModal: React.FC<StudentModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg">
-              <Users className="h-5 w-5 text-white" />
+            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
+              <User className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-xl font-semibold text-gray-800">
               {isEditing ? 'Edit Student' : 'Add New Student'}
@@ -214,17 +203,17 @@ export const StudentModal: React.FC<StudentModalProps> = ({
             </div>
           )}
 
-          {/* Full Name */}
+          {/* Student Name */}
           <div>
             <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
+              Student Name
             </label>
             <input
               type="text"
               id="full_name"
               value={formData.full_name}
               onChange={(e) => handleInputChange('full_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                 validationErrors.full_name ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Enter student's full name"
@@ -232,96 +221,78 @@ export const StudentModal: React.FC<StudentModalProps> = ({
             {validationErrors.full_name && (
               <p className="text-red-600 text-xs mt-1">{validationErrors.full_name}</p>
             )}
+            <p className="text-xs text-gray-500 mt-1">
+              This is the name the student will select when logging in
+            </p>
           </div>
 
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="email"
-                id="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  validationErrors.email ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="student@school.edu"
-              />
-            </div>
-            {validationErrors.email && (
-              <p className="text-red-600 text-xs mt-1">{validationErrors.email}</p>
-            )}
-          </div>
-
-          {/* Class Selection */}
+          {/* Class Assignment */}
           <div>
             <label htmlFor="class_id" className="block text-sm font-medium text-gray-700 mb-1">
-              Class
+              Assign to Class
             </label>
-            <select
-              id="class_id"
-              value={formData.class_id}
-              onChange={(e) => handleInputChange('class_id', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                validationErrors.class_id ? 'border-red-300' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Select a class</option>
-              {classes.map((classItem) => (
-                <option key={classItem.id} value={classItem.id}>
-                  {classItem.name} - Grade {classItem.grade_level}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <GraduationCap className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <select
+                id="class_id"
+                value={formData.class_id}
+                onChange={(e) => handleInputChange('class_id', e.target.value)}
+                className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                  validationErrors.class_id ? 'border-red-300' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select a class</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} (Grade {cls.grade_level})
+                  </option>
+                ))}
+              </select>
+            </div>
             {validationErrors.class_id && (
               <p className="text-red-600 text-xs mt-1">{validationErrors.class_id}</p>
             )}
           </div>
 
-          {/* Visual Password */}
+          {/* Visual Password Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Visual Password
             </label>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex-1">
-                <select
-                  value={formData.visual_password_id || ''}
-                  onChange={(e) => handleInputChange('visual_password_id', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a visual password</option>
-                  {visualPasswords.map((password) => (
-                    <option key={password.id} value={password.id}>
-                      {password.name} ({password.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="button"
-                onClick={generateRandomPassword}
-                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Generate random password"
-              >
-                <Shuffle className="h-4 w-4" />
-              </button>
-            </div>
-            
-            {/* Visual Password Preview */}
-            {getSelectedPassword() && (
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <span className="text-2xl">{getSelectedPassword()?.image_url}</span>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">{getSelectedPassword()?.name}</p>
-                  <p className="text-xs text-gray-500">Category: {getSelectedPassword()?.category}</p>
+            <div className="space-y-3">
+              {Object.entries(groupedVisualPasswords).map(([category, passwords]) => (
+                <div key={category}>
+                  <h4 className="text-xs font-medium text-gray-600 uppercase mb-2">
+                    {category}
+                  </h4>
+                  <div className="grid grid-cols-6 gap-2">
+                    {passwords.map((vp) => (
+                      <button
+                        key={vp.id}
+                        type="button"
+                        onClick={() => handleInputChange('visual_password_id', vp.id)}
+                        className={`
+                          p-3 rounded-lg border-2 transition-all hover:scale-105 active:scale-95
+                          ${formData.visual_password_id === vp.id 
+                            ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500 ring-opacity-50' 
+                            : 'border-gray-200 hover:border-purple-300'
+                          }
+                        `}
+                        title={vp.name}
+                      >
+                        <span className="text-2xl block">{vp.display_emoji}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
+            {validationErrors.visual_password_id && (
+              <p className="text-red-600 text-xs mt-1">{validationErrors.visual_password_id}</p>
             )}
+            <p className="text-xs text-gray-500 mt-2">
+              Student will click on this icon to log in (no password needed)
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -336,7 +307,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

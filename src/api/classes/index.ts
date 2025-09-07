@@ -60,8 +60,14 @@ export async function handleClassesRequest(request: ApiRequest, id?: string, sub
 
   switch (request.method) {
     case 'GET':
-      if (id) {
+      if (id && subResource === 'students') {
+        // Handle GET /api/classes/:id/students
+        return await handleGetClassStudents(id, sessionUser);
+      } else if (id) {
         return await handleGetClass(request, id, sessionUser);
+      } else if (request.query?.access_token) {
+        // Handle GET /api/classes/students?access_token=... (no auth required for student login)
+        return await handleGetStudentsByAccessToken(request);
       } else {
         return await handleGetClasses(request, sessionUser);
       }
@@ -333,6 +339,86 @@ async function handleDeleteClass(request: ApiRequest, classId: string, sessionUs
     console.error('❌ Error deleting class:', error);
     return new Response(
       JSON.stringify(createApiResponse(null, 'Failed to delete class', 500)),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// GET /api/classes/:id/students - Get students in a specific class
+async function handleGetClassStudents(classId: string, sessionUser: any): Promise<Response> {
+  try {
+    console.log('👥 Getting students for class:', classId, 'by user:', sessionUser.role);
+
+    // Check if class exists and user has permission
+    const classData = await DatabaseService.getClassById(classId);
+    if (!classData) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'Class not found', 404)),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check permissions
+    if (sessionUser.role === 'teacher' && classData.teacher_id !== sessionUser.id) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'You can only view students in your own classes', 403)),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get students in the class
+    const students = await DatabaseService.getUsersByClassId(classId);
+    
+    console.log(`✅ Found ${students.length} students in class`);
+
+    return new Response(
+      JSON.stringify(createApiResponse(students, null, 200)),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('❌ Error getting class students:', error);
+    return new Response(
+      JSON.stringify(createApiResponse(null, 'Failed to get class students', 500)),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// GET /api/classes/students?access_token=... - Get students by class access token (for student login)
+async function handleGetStudentsByAccessToken(request: ApiRequest): Promise<Response> {
+  try {
+    const accessToken = request.query?.access_token;
+    console.log('🔑 Getting students for class access token:', accessToken);
+
+    if (!accessToken) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'Access token required', 400)),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the class exists and allows student access
+    const classData = await DatabaseService.getClassByAccessToken(accessToken);
+    if (!classData || !classData.allow_student_access) {
+      return new Response(
+        JSON.stringify(createApiResponse(null, 'Invalid class access code', 400)),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get students in the class
+    const students = await DatabaseService.getUsersByClassId(classData.id);
+    
+    console.log(`✅ Found ${students.length} students for class access`);
+
+    return new Response(
+      JSON.stringify(createApiResponse(students, null, 200)),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('❌ Error getting students by access token:', error);
+    return new Response(
+      JSON.stringify(createApiResponse(null, 'Failed to get students', 500)),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

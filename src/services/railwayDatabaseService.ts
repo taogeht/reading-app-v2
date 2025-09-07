@@ -16,6 +16,17 @@ export interface Class {
   updated_at: string;
 }
 
+export interface VisualPassword {
+  id: string;
+  name: string;
+  display_emoji: string;
+  category: 'animals' | 'shapes' | 'colors' | 'objects';
+  sort_order: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Assignment {
   id: string;
   title: string;

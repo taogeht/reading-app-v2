@@ -928,6 +928,29 @@ export class DatabaseService {
     }
   }
 
+  static async getUsersByClassId(classId: string): Promise<DatabaseUserProfile[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getUsersByClassId not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT id, email, username, full_name, role, class_id, visual_password_id, created_at, updated_at 
+         FROM profiles 
+         WHERE class_id = $1 AND role = $2 
+         ORDER BY full_name`,
+        [classId, 'student']
+      );
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting users by class ID:', error);
+      return [];
+    }
+  }
+
   // Update user (general method for profile updates)
   static async updateUser(id: string, updates: Partial<DatabaseUserProfile>): Promise<DatabaseUserProfile | null> {
     const poolAvailable = await waitForPool();
