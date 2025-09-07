@@ -1,6 +1,6 @@
 
 -- Generated Admin Account Creation Script
--- Created: 2025-09-06T23:47:43.459Z
+-- Created: 2025-09-06T23:49:59.881Z
 -- Email: bryce@mschool.com.tw
 
 -- Clean up any existing records (optional - remove if you want to keep existing data)
@@ -19,7 +19,7 @@ INSERT INTO "user" (
     created_at,
     updated_at
 ) VALUES (
-    '73592d20-9218-467c-88af-9f81c196fc72',
+    '8e07d876-0c27-4c99-82ed-d7ef8c268761',
     'bryce@mschool.com.tw',
     'System Administrator',
     'brycev',
@@ -39,11 +39,11 @@ INSERT INTO account (
     created_at,
     updated_at
 ) VALUES (
-    'c7cabc67-f68e-4ea4-a677-027c972992ba',
-    '73592d20-9218-467c-88af-9f81c196fc72',
+    '31afaea4-78f7-43a2-8174-4e6e36951d03',
+    '8e07d876-0c27-4c99-82ed-d7ef8c268761',
     'bryce@mschool.com.tw',
     'credential',
-    '7833ff81cb4fb7e216957ac4784615864fdcad05f874263ce7d9f186eab8cce3:14b699edcf0769a9e8edeee1b2f36b6ff6d27b442dc0444abb51fe13c8cf488a4abe096b76a0bca8672f9319fbdbafcc1b78021c3666af63351dcce35072c295',
+    '1fb608d9311f98e80ebe9995f749f6c0f7897b8fbd0c1f0c53d88ad678d690bf:29219721c5c8682a4257d95afcd7af288fa00aea76042fb9e99f89cb495632c693e0b924b155e6060268328dc503ba826920633d36cda3495e1d4444ea7c79b3',
     NOW(),
     NOW()
 );
@@ -58,7 +58,7 @@ INSERT INTO profiles (
     created_at,
     updated_at
 ) VALUES (
-    '05c4c924-50f3-4783-b570-106deb362dbb',
+    '77597fd9-9069-4b48-9b08-abed8be560cf',
     'bryce@mschool.com.tw',
     'brycev',
     'System Administrator',
