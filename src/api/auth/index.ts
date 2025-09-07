@@ -18,6 +18,7 @@ export interface SignUpRequest {
 
 export interface SignInRequest {
   email?: string;
+  username?: string; // For teacher login
   password?: string;
   // Visual password login
   full_name?: string;
@@ -190,8 +191,9 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
     // Determine authentication method
     const isVisualAuth = body.visual_password_id && body.full_name && body.class_access_token;
     const isEmailAuth = body.email && body.password;
+    const isUsernameAuth = body.username && body.password;
 
-    if (!isVisualAuth && !isEmailAuth) {
+    if (!isVisualAuth && !isEmailAuth && !isUsernameAuth) {
       return new Response(
         JSON.stringify(createApiResponse(null, 'Invalid authentication credentials', 400)),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -216,9 +218,21 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
       }
 
       userProfile = authResult.user;
+    } else if (isUsernameAuth) {
+      // Username/password authentication for teachers
+      console.log('🔄 Authenticating teacher with username/password');
+      
+      userProfile = await DatabaseService.authenticateUsernamePassword(body.username!, body.password!);
+      
+      if (!userProfile) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'Invalid username or password', 401)),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     } else {
-      // Email/password authentication for teachers/admins
-      console.log('🔄 Authenticating teacher/admin with email/password');
+      // Email/password authentication for admins
+      console.log('🔄 Authenticating admin with email/password');
       
       userProfile = await DatabaseService.authenticateEmailPassword(body.email!, body.password!);
       

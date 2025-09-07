@@ -6,10 +6,10 @@ import { DatabaseService } from '../../lib/database-service';
 import { SessionManager } from '../../lib/session-manager';
 
 export interface CreateUserRequest {
-  email: string;
+  email?: string; // Optional for teachers (required for students/admins)
   full_name: string;
   role: 'student' | 'teacher' | 'admin';
-  username?: string;
+  username: string; // Required for teachers, optional for students/admins
   password?: string; // For teachers/admins
   class_id?: string; // For students
   visual_password_id?: string; // For students with visual passwords
@@ -152,21 +152,41 @@ async function handleCreateUser(request: ApiRequest): Promise<Response> {
     const userData: CreateUserRequest = request.body;
     console.log('➕ Creating new user:', userData.email, 'Role:', userData.role);
 
-    // Validate required fields
-    if (!userData.email || !userData.full_name || !userData.role) {
+    // Validate required fields based on role
+    if (!userData.full_name || !userData.role || !userData.username) {
       return new Response(
-        JSON.stringify(createApiResponse(null, 'Missing required fields: email, full_name, role', 400)),
+        JSON.stringify(createApiResponse(null, 'Missing required fields: full_name, role, username', 400)),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if user already exists
-    const existingUser = await DatabaseService.getUserByEmail(userData.email);
-    if (existingUser) {
+    // For teachers: username is primary identifier, email is optional
+    // For students/admins: email is still required
+    if (userData.role !== 'teacher' && !userData.email) {
       return new Response(
-        JSON.stringify(createApiResponse(null, 'User already exists with this email', 409)),
-        { status: 409, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify(createApiResponse(null, 'Email is required for students and admins', 400)),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Check if user already exists (by username for teachers, by email for others)
+    let existingUser;
+    if (userData.role === 'teacher') {
+      existingUser = await DatabaseService.getUserByUsername(userData.username);
+      if (existingUser) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'Teacher already exists with this username', 409)),
+          { status: 409, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      existingUser = await DatabaseService.getUserByEmail(userData.email!);
+      if (existingUser) {
+        return new Response(
+          JSON.stringify(createApiResponse(null, 'User already exists with this email', 409)),
+          { status: 409, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     let newUser;
@@ -191,8 +211,11 @@ async function handleCreateUser(request: ApiRequest): Promise<Response> {
         );
       }
       
+      // For teachers, use username@school.local as email if not provided
+      const email = userData.email || (userData.role === 'teacher' ? `${userData.username}@school.local` : '');
+      
       newUser = await DatabaseService.createUserWithPassword({
-        email: userData.email,
+        email,
         password: userData.password,
         full_name: userData.full_name,
         role: userData.role as 'teacher' | 'admin',

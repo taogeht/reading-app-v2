@@ -722,6 +722,36 @@ export class DatabaseService {
     return await bcrypt.compare(password, hash);
   }
 
+  // Authenticate teacher with username and password
+  static async authenticateUsernamePassword(username: string, password: string): Promise<DatabaseUserProfile | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.authenticateUsernamePassword not available - pool not ready');
+      return null;
+    }
+
+    try {
+      // Get user by username (teachers)
+      const user = await this.getUserByUsername(username);
+      if (!user || !user.password_hash) {
+        return null;
+      }
+
+      // Verify password
+      const isValid = await this.verifyPassword(password, user.password_hash);
+      if (!isValid) {
+        return null;
+      }
+
+      // Return user profile (without password hash)
+      const { password_hash, ...userProfile } = user;
+      return userProfile;
+    } catch (error) {
+      console.error('Error authenticating username/password:', error);
+      return null;
+    }
+  }
+
   // Authenticate teacher/admin with email and password
   static async authenticateEmailPassword(email: string, password: string): Promise<DatabaseUserProfile | null> {
     const poolAvailable = await waitForPool();
@@ -848,6 +878,29 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error getting all users:', error);
       return [];
+    }
+  }
+
+  // Get user by username (for teacher authentication)
+  static async getUserByUsername(username: string): Promise<DatabaseUserProfile | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getUserByUsername not available - pool not ready');
+      return null;
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT id, email, username, full_name, role, class_id, visual_password_id, password_hash, created_at, updated_at 
+         FROM profiles 
+         WHERE username = $1`,
+        [username]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      return null;
     }
   }
 

@@ -12,11 +12,12 @@ interface TeacherModalProps {
 
 interface TeacherFormData {
   full_name: string;
-  email: string;
+  username: string;
+  password: string;
 }
 
 interface TeacherCreationResult {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -28,7 +29,8 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<TeacherFormData>({
     full_name: '',
-    email: ''
+    username: '',
+    password: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +45,14 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     if (teacher) {
       setFormData({
         full_name: teacher.full_name || '',
-        email: teacher.email || ''
+        username: teacher.username || '',
+        password: '' // Don't show existing password
       });
     } else {
       setFormData({
         full_name: '',
-        email: ''
+        username: '',
+        password: ''
       });
     }
     setError(null);
