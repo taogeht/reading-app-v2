@@ -211,8 +211,8 @@ async function handleCreateUser(request: ApiRequest): Promise<Response> {
         );
       }
       
-      // For teachers, use username@school.local as email if not provided
-      const email = userData.email || (userData.role === 'teacher' ? `${userData.username}@school.local` : '');
+      // For teachers, use username@mschool.com.tw as email if not provided
+      const email = userData.email || (userData.role === 'teacher' ? `${userData.username}@mschool.com.tw` : '');
       
       newUser = await DatabaseService.createUserWithPassword({
         email,

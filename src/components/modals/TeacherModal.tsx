@@ -69,12 +69,18 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       errors.full_name = 'Full name is required';
     }
 
-    if (!formData.email.trim()) {
-      errors.email = 'Email address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    } else if (formData.email.length > 255) {
-      errors.email = 'Email address must be less than 255 characters';
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters';
+    } else if (!/^[a-zA-Z0-9._-]+$/.test(formData.username)) {
+      errors.username = 'Username can only contain letters, numbers, dots, hyphens, and underscores';
+    }
+
+    if (!isEditing && !formData.password.trim()) {
+      errors.password = 'Password is required for new teachers';
+    } else if (!isEditing && formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
     }
 
     setValidationErrors(errors);
@@ -96,21 +102,23 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
         // Update existing teacher
         await profileService.updateTeacher(teacher.id, {
           full_name: formData.full_name,
-          email: formData.email
+          username: formData.username
         });
         onSave();
         onClose();
       } else {
-        // Create new teacher with email
-        const result = await profileService.createTeacherWithEmail({
+        // Create new teacher with username and password
+        const result = await profileService.create({
           full_name: formData.full_name,
-          email: formData.email
+          username: formData.username,
+          password: formData.password,
+          role: 'teacher'
         });
         
-        // Show the generated credentials
+        // Show the created credentials
         setCreationResult({
-          email: result.email,
-          password: result.password
+          username: formData.username,
+          password: formData.password
         });
       }
     } catch (err: any) {
@@ -179,16 +187,16 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Username
               </label>
               <div className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-2">
-                <span className="font-mono text-gray-800">{creationResult.email}</span>
+                <span className="font-mono text-gray-800">{creationResult.username}</span>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Generated Password
+                Password
               </label>
               <div className="flex gap-2">
                 <div className="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2">
@@ -213,9 +221,10 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-800 mb-2">Next Steps:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Share the email and password with the teacher</li>
+                <li>• Share the username and password with the teacher</li>
                 <li>• Teacher can log in at /teacher using these credentials</li>
                 <li>• Teacher can change their password after first login</li>
+                <li>• Email is auto-generated as {creationResult.username}@mschool.com.tw</li>
               </ul>
             </div>
 
@@ -282,31 +291,59 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
             )}
           </div>
 
-          {/* Email Address */}
+          {/* Username */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              Username
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <input
-                type="email"
-                id="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                type="text"
+                id="username"
+                value={formData.username}
+                onChange={(e) => handleInputChange('username', e.target.value)}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  validationErrors.email ? 'border-red-300' : 'border-gray-300'
+                  validationErrors.username ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="teacher@school.edu"
+                placeholder="john.smith"
               />
             </div>
-            {validationErrors.email && (
-              <p className="text-red-600 text-xs mt-1">{validationErrors.email}</p>
+            {validationErrors.username && (
+              <p className="text-red-600 text-xs mt-1">{validationErrors.username}</p>
             )}
             <p className="text-xs text-gray-500 mt-1">
-              {isEditing ? 'Email address for login access' : 'Teacher will use this email to log in. A secure password will be auto-generated.'}
+              Teacher will use this username to log in. Email will be auto-generated as username@mschool.com.tw
             </p>
           </div>
+
+          {/* Password */}
+          {!isEditing && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="password"
+                  id="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    validationErrors.password ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter secure password"
+                />
+              </div>
+              {validationErrors.password && (
+                <p className="text-red-600 text-xs mt-1">{validationErrors.password}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Set a secure password for the teacher. They can change it after first login.
+              </p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
