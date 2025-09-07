@@ -569,6 +569,10 @@ export const recordingService = {
     return [];
   },
 
+  async getRecordingsByAssignment(assignmentId: string): Promise<Recording[]> {
+    return this.getByAssignment(assignmentId);
+  },
+
   async create(recording: Omit<Recording, 'id' | 'created_at' | 'updated_at'>): Promise<Recording> {
     console.warn('recordingService.create not implemented - using mock');
     return {
