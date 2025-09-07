@@ -828,6 +828,115 @@ export class DatabaseService {
       return false;
     }
   }
+
+  // Get all users (for admin management)
+  static async getAllUsers(): Promise<DatabaseUserProfile[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getAllUsers not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT id, email, username, full_name, role, class_id, visual_password_id, created_at, updated_at 
+         FROM profiles 
+         ORDER BY created_at DESC`
+      );
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
+  }
+
+  // Get users by role (teachers, students, admins)
+  static async getUsersByRole(role: 'student' | 'teacher' | 'admin'): Promise<DatabaseUserProfile[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getUsersByRole not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT id, email, username, full_name, role, class_id, visual_password_id, created_at, updated_at 
+         FROM profiles 
+         WHERE role = $1 
+         ORDER BY created_at DESC`,
+        [role]
+      );
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting users by role:', error);
+      return [];
+    }
+  }
+
+  // Update user (general method for profile updates)
+  static async updateUser(id: string, updates: Partial<DatabaseUserProfile>): Promise<DatabaseUserProfile | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.updateUser not available - pool not ready');
+      return null;
+    }
+
+    try {
+      // Build dynamic SET clause
+      const setFields = [];
+      const values = [];
+      let paramIndex = 1;
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (key !== 'id' && key !== 'created_at' && key !== 'updated_at' && value !== undefined) {
+          setFields.push(`${key} = $${paramIndex}`);
+          values.push(value);
+          paramIndex++;
+        }
+      }
+
+      if (setFields.length === 0) {
+        return await this.getUserById(id);
+      }
+
+      values.push(id); // Add ID as last parameter
+      const query = `
+        UPDATE profiles 
+        SET ${setFields.join(', ')}, updated_at = NOW()
+        WHERE id = $${paramIndex}
+        RETURNING id, email, username, full_name, role, class_id, visual_password_id, created_at, updated_at
+      `;
+
+      const result = await pool.query(query, values);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return null;
+    }
+  }
+
+  // Delete user
+  static async deleteUser(id: string): Promise<boolean> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.deleteUser not available - pool not ready');
+      return false;
+    }
+
+    try {
+      const result = await pool.query(
+        `DELETE FROM profiles WHERE id = $1`,
+        [id]
+      );
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
+  }
 }
 
 // Export types

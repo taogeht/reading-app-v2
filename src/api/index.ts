@@ -185,6 +185,7 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 
 // Import route handlers
 import { handleAuthRequest as authHandler } from './auth/index';
+import { handleUsersRequest as usersHandler } from './users/index';
 import { handleVisualPasswordsRequest as visualPasswordsHandler } from './visual-passwords/index';
 import { handleClassesRequest as classesHandler } from './classes/index';
 import { handleRecordingsRequest as recordingsHandler } from './recordings/index';
@@ -253,11 +254,7 @@ async function handleAuthRequest(request: ApiRequest): Promise<Response> {
 }
 
 async function handleUsersRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
-  // TODO: Implement in separate users routes file
-  return new Response(
-    JSON.stringify(createApiResponse(null, 'Users endpoints not implemented yet', 501)),
-    { status: 501, headers: { 'Content-Type': 'application/json' } }
-  );
+  return await usersHandler(request, id, subResource);
 }
 
 async function handleClassesRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {

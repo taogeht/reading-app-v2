@@ -85,8 +85,24 @@ export const profileService = {
   },
 
   async getTeachers(): Promise<UserProfile[]> {
-    console.warn('profileService.getTeachers not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch('/api/users?role=teacher', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get teachers:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+      return [];
+    }
   },
 
   async getStudentsByClass(classId: string): Promise<UserProfile[]> {
@@ -128,17 +144,25 @@ export const profileService = {
   },
 
   async create(profile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> {
-    console.warn('profileService.create not implemented - using mock');
-    return {
-      id: 'mock-id',
-      email: profile.email,
-      username: profile.username,
-      full_name: profile.full_name,
-      role: profile.role,
-      class_id: profile.class_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(profile),
+      });
+
+      const result = await response.json();
+      if (result.status === 201) {
+        return result.data;
+      } else {
+        console.error('Failed to create user:', result.error);
+        throw new Error(result.error || 'Failed to create user');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   },
 
   async update(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
