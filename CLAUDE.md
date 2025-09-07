@@ -1,4 +1,8 @@
-7 Claude rules
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Claude Workflow Rules
 1. First think through the problem, read the codebase for relevant files, and write a plan to tasks/todo.md.
 2. The plan should have a list of todo items that you can check off as you complete them
 3. Before you begin working, check in with me and I will verify the plan.
@@ -7,421 +11,281 @@
 6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
 7. Finally, add a review section to the [todo.md](http://todo.md/) file with a summary of the changes you made and any other relevant information.
 
+## Reading Recording Application Overview
 
-# Task Master AI - Claude Code Integration Guide
+This is a React TypeScript application for elementary reading practice with audio recording and feedback. The app is currently undergoing a migration from Supabase to Railway PostgreSQL with BetterAuth.
 
-## Essential Commands
+### Core Architecture
 
-### Core Workflow Commands
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js with custom API handlers via Vite middleware  
+- **Database**: PostgreSQL on Railway (migrated from Supabase)
+- **Authentication**: BetterAuth with multi-role support
+- **Deployment**: Railway with Vite preview server
+
+### User Roles & Authentication
+
+**Three distinct user types with different auth flows:**
+
+1. **Students**: Visual password authentication (no email required)
+   - Access via class access tokens
+   - Practice reading assignments
+   - Record audio for teacher review
+
+2. **Teachers**: Email/password authentication
+   - Manage classes and students
+   - Create reading assignments  
+   - Review student recordings
+
+3. **Admins**: Email/password with elevated permissions
+   - Create teacher accounts
+   - System-wide management
+   - Pre-created accounts (no self-registration)
+
+## Development Commands
 
 ```bash
-# Project Setup
-task-master init                                    # Initialize Task Master in current project
-task-master parse-prd .taskmaster/docs/prd.txt      # Generate tasks from PRD document
-task-master models --setup                        # Configure AI models interactively
+# Development
+npm run dev              # Start dev server with API middleware (localhost:5173)
+npm run build           # Build for production
+npm run preview         # Railway-compatible preview server
+npm run lint            # ESLint code checking
 
-# Daily Development Workflow
-task-master list                                   # Show all tasks with status
-task-master next                                   # Get next available task to work on
-task-master show <id>                             # View detailed task information (e.g., task-master show 1.2)
-task-master set-status --id=<id> --status=done    # Mark task complete
+# Database Scripts
+node scripts/generate-admin-account.js    # Create admin user in database
+node scripts/run-migration.js            # Run database migrations
 
-# Task Management
-task-master add-task --prompt="description" --research        # Add new task with AI assistance
-task-master expand --id=<id> --research --force              # Break task into subtasks
-task-master update-task --id=<id> --prompt="changes"         # Update specific task
-task-master update --from=<id> --prompt="changes"            # Update multiple tasks from ID onwards
-task-master update-subtask --id=<id> --prompt="notes"        # Add implementation notes to subtask
-
-# Analysis & Planning
-task-master analyze-complexity --research          # Analyze task complexity
-task-master complexity-report                      # View complexity analysis
-task-master expand --all --research               # Expand all eligible tasks
-
-# Dependencies & Organization
-task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
-task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
-task-master validate-dependencies                            # Check for dependency issues
-task-master generate                                         # Update task markdown files (usually auto-called)
+# Railway Deployment
+git push origin main    # Auto-deploys to Railway via GitHub integration
 ```
 
-## Key Files & Project Structure
+## Key Files & Architecture
 
-### Core Files
+### Authentication System
+- `src/lib/better-auth-server.ts` - BetterAuth server configuration (server-side only)
+- `src/lib/auth-client.ts` - BetterAuth client with fallbacks
+- `src/contexts/UnifiedAuthContext.tsx` - React auth provider
+- `src/api/auth/index.ts` - Auth API handlers
 
-- `.taskmaster/tasks/tasks.json` - Main task data file (auto-managed)
-- `.taskmaster/config.json` - AI model configuration (use `task-master models` to modify)
-- `.taskmaster/docs/prd.txt` - Product Requirements Document for parsing
-- `.taskmaster/tasks/*.txt` - Individual task files (auto-generated from tasks.json)
-- `.env` - API keys for CLI usage
+### API Layer
+- `src/api/index.ts` - Main API router and utilities
+- `src/api/auth/` - Authentication endpoints
+- `src/api/classes/` - Class management endpoints
+- `src/api/visual-passwords/` - Student visual auth endpoints
+- `vite.config.ts` - Custom middleware for API route handling
 
-### Claude Code Integration Files
+### Database Layer
+- `src/lib/database.ts` - PostgreSQL connection pool
+- `src/lib/database-service.ts` - Database operations (replaces Supabase client)
+- `railway-migration/` - Database schema and setup scripts
 
-- `CLAUDE.md` - Auto-loaded context for Claude Code (this file)
-- `.claude/settings.json` - Claude Code tool allowlist and preferences
-- `.claude/commands/` - Custom slash commands for repeated workflows
-- `.mcp.json` - MCP server configuration (project-specific)
-
-### Directory Structure
-
+### Component Structure
 ```
-project/
-├── .taskmaster/
-│   ├── tasks/              # Task files directory
-│   │   ├── tasks.json      # Main task database
-│   │   ├── task-1.md      # Individual task files
-│   │   └── task-2.md
-│   ├── docs/              # Documentation directory
-│   │   ├── prd.txt        # Product requirements
-│   ├── reports/           # Analysis reports directory
-│   │   └── task-complexity-report.json
-│   ├── templates/         # Template files
-│   │   └── example_prd.txt  # Example PRD template
-│   └── config.json        # AI models & settings
-├── .claude/
-│   ├── settings.json      # Claude Code configuration
-│   └── commands/         # Custom slash commands
-├── .env                  # API keys
-├── .mcp.json            # MCP configuration
-└── CLAUDE.md            # This file - auto-loaded by Claude Code
+src/components/
+├── auth/           # Authentication components
+├── modals/         # Modal dialogs (class, student, teacher creation)
+├── *Dashboard.tsx  # Role-specific dashboards
+├── *Login.tsx      # Role-specific login forms
+└── core reading practice components
 ```
 
-## MCP Integration
+### Types & Interfaces
+- `src/types/index.ts` - Core application types (Story, FeedbackData, etc.)
+- API response types defined inline in API handlers
 
-Task Master provides an MCP server that Claude Code can connect to. Configure in `.mcp.json`:
+## Railway Deployment Configuration
 
-```json
-{
-  "mcpServers": {
-    "task-master-ai": {
-      "command": "npx",
-      "args": ["-y", "--package=task-master-ai", "task-master-ai"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your_key_here",
-        "PERPLEXITY_API_KEY": "your_key_here",
-        "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-        "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-        "XAI_API_KEY": "XAI_API_KEY_HERE",
-        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-        "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-        "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-        "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-      }
-    }
-  }
+**Critical**: This app uses a custom Vite configuration for Railway compatibility.
+
+### Vite Configuration (`vite.config.ts`)
+```typescript
+preview: {
+  host: '0.0.0.0',
+  port: process.env.PORT || 4173,
+  allowedHosts: ['healthcheck.railway.app', 'localhost', '127.0.0.1']
 }
 ```
 
-### Essential MCP Tools
+### Custom API Middleware
+- Handles `/api/*` routes in both development and preview modes
+- Converts Node.js requests to Web API format for unified handling
+- Essential for Railway deployment (runs `npm run preview`)
 
-```javascript
-help; // = shows available taskmaster commands
-// Project setup
-initialize_project; // = task-master init
-parse_prd; // = task-master parse-prd
+### Railway Files
+- `railway.json` - Deployment configuration
+- `package.json` - Node >=20 requirement for compatibility
 
-// Daily workflow
-get_tasks; // = task-master list
-next_task; // = task-master next
-get_task; // = task-master show <id>
-set_task_status; // = task-master set-status
+## Environment Variables
 
-// Task management
-add_task; // = task-master add-task
-expand_task; // = task-master expand
-update_task; // = task-master update-task
-update_subtask; // = task-master update-subtask
-update; // = task-master update
-
-// Analysis
-analyze_project_complexity; // = task-master analyze-complexity
-complexity_report; // = task-master complexity-report
+### Required for Development
+```env
+DATABASE_URL=postgresql://user:pass@host:port/db    # Railway PostgreSQL
+BETTER_AUTH_SECRET=your-secret-key                 # BetterAuth encryption
+BETTER_AUTH_URL=http://localhost:5173              # BetterAuth base URL
 ```
 
-## Claude Code Workflow Integration
+### Railway Auto-Generated
+- `DATABASE_URL` - PostgreSQL connection (auto-created)
+- `PORT` - Application port (Railway manages)
 
-### Standard Development Workflow
+## Database Schema
 
-#### 1. Project Initialization
+### Core Tables
+- `user` - BetterAuth user records
+- `account` - BetterAuth account records  
+- `session` - BetterAuth session management
+- `profiles` - Extended user profiles (role, class_id, etc.)
+- `classes` - Teacher classes with access tokens
+- `assignments` - Reading assignments
+- `recording_submissions` - Student audio recordings
+- `visual_passwords` - Student visual authentication
 
-```bash
-# Initialize Task Master
-task-master init
+### Key Relationships
+- Users have profiles (1:1)
+- Students belong to classes via `class_id`
+- Teachers own classes via `teacher_id`
+- Recordings link students to assignments
 
-# Create or obtain PRD, then parse it
-task-master parse-prd .taskmaster/docs/prd.txt
+## Migration Status (Supabase → Railway)
 
-# Analyze complexity and expand tasks
-task-master analyze-complexity --research
-task-master expand --all --research
+**Current State**: Mostly complete, authentication system stabilizing
+
+✅ **Completed:**
+- Database schema migrated to Railway PostgreSQL
+- BetterAuth integration with custom handlers
+- API layer unified under `/api/*` routes
+- Vite middleware for Railway compatibility
+- Multi-role authentication flows
+
+🔄 **In Progress:**
+- Final authentication system stabilization
+- Railway deployment configuration fixes
+
+❌ **Removed:**
+- Whisper server analysis (replaced with basic audio duration)
+- 57+ Supabase RLS migration files
+- Supabase client dependencies
+
+## Common Development Patterns
+
+### Making API Calls
+```typescript
+// Use fetch with relative URLs - Vite middleware handles routing
+const response = await fetch('/api/auth/sign-in', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password })
+});
 ```
 
-If tasks already exist, another PRD can be parsed (with new information only!) using parse-prd with --append flag. This will add the generated tasks to the existing list of tasks..
+### Database Operations
+```typescript
+// Use DatabaseService instead of Supabase client
+import { DatabaseService } from '../lib/database-service';
 
-#### 2. Daily Development Loop
-
-```bash
-# Start each session
-task-master next                           # Find next available task
-task-master show <id>                     # Review task details
-
-# During implementation, check in code context into the tasks and subtasks
-task-master update-subtask --id=<id> --prompt="implementation notes..."
-
-# Complete tasks
-task-master set-status --id=<id> --status=done
+const user = await DatabaseService.getUserByEmail(email);
+const classes = await DatabaseService.getClassesByTeacher(teacherId);
 ```
 
-#### 3. Multi-Claude Workflows
+### Authentication Checks
+```typescript
+// Use UnifiedAuthContext
+const { user, signIn, signOut, isLoading } = useAuth();
 
-For complex projects, use multiple Claude Code sessions:
-
-```bash
-# Terminal 1: Main implementation
-cd project && claude
-
-# Terminal 2: Testing and validation
-cd project-test-worktree && claude
-
-# Terminal 3: Documentation updates
-cd project-docs-worktree && claude
-```
-
-### Custom Slash Commands
-
-Create `.claude/commands/taskmaster-next.md`:
-
-```markdown
-Find the next available Task Master task and show its details.
-
-Steps:
-
-1. Run `task-master next` to get the next task
-2. If a task is available, run `task-master show <id>` for full details
-3. Provide a summary of what needs to be implemented
-4. Suggest the first implementation step
-```
-
-Create `.claude/commands/taskmaster-complete.md`:
-
-```markdown
-Complete a Task Master task: $ARGUMENTS
-
-Steps:
-
-1. Review the current task with `task-master show $ARGUMENTS`
-2. Verify all implementation is complete
-3. Run any tests related to this task
-4. Mark as complete: `task-master set-status --id=$ARGUMENTS --status=done`
-5. Show the next available task with `task-master next`
-```
-
-## Tool Allowlist Recommendations
-
-Add to `.claude/settings.json`:
-
-```json
-{
-  "allowedTools": [
-    "Edit",
-    "Bash(task-master *)",
-    "Bash(git commit:*)",
-    "Bash(git add:*)",
-    "Bash(npm run *)",
-    "mcp__task_master_ai__*"
-  ]
+// Role-based access
+if (user?.role === 'teacher') {
+  // Teacher-specific functionality
 }
 ```
 
-## Configuration & Setup
+## Development Notes
 
-### API Keys Required
+### API Route Debugging
+- Routes are handled by Vite middleware in development
+- Check browser network tab for API call routing
+- Vite dev server logs show middleware activity
 
-At least **one** of these API keys must be configured:
+### Authentication System
+- BetterAuth runs server-side only (`isBrowser` checks)
+- Fallback handlers provide stability during development
+- Visual password auth is custom implementation for students
 
-- `ANTHROPIC_API_KEY` (Claude models) - **Recommended**
-- `PERPLEXITY_API_KEY` (Research features) - **Highly recommended**
-- `OPENAI_API_KEY` (GPT models)
-- `GOOGLE_API_KEY` (Gemini models)
-- `MISTRAL_API_KEY` (Mistral models)
-- `OPENROUTER_API_KEY` (Multiple models)
-- `XAI_API_KEY` (Grok models)
+### Railway Deployment
+- Uses `vite preview` not static hosting
+- Custom middleware must work in preview mode
+- Health checks require specific host allowlist
 
-An API key is required for any provider used across any of the 3 roles defined in the `models` command.
+### Database Connections
+- Always use connection pool from `src/lib/database.ts`
+- Railway provides SSL-enabled PostgreSQL automatically
+- Connection string format: `postgresql://user:pass@host:port/db?sslmode=require`
 
-### Model Configuration
+## Testing Strategy
 
-```bash
-# Interactive setup (recommended)
-task-master models --setup
+**Currently No Automated Tests** - Manual testing workflow:
 
-# Set specific models
-task-master models --set-main claude-3-5-sonnet-20241022
-task-master models --set-research perplexity-llama-3.1-sonar-large-128k-online
-task-master models --set-fallback gpt-4o-mini
-```
+1. **Authentication Testing**:
+   - Test each role login (student visual, teacher email, admin email)
+   - Verify role-based redirects work correctly
+   - Check session persistence across page refreshes
 
-## Task Structure & IDs
+2. **API Testing**:
+   - Use browser DevTools Network tab
+   - Test CRUD operations for classes, students, assignments
+   - Verify error handling and response formats
 
-### Task ID Format
+3. **Database Testing**:
+   - Use Railway PostgreSQL console for direct queries
+   - Verify BetterAuth tables and custom schema work together
+   - Test foreign key relationships
 
-- Main tasks: `1`, `2`, `3`, etc.
-- Subtasks: `1.1`, `1.2`, `2.1`, etc.
-- Sub-subtasks: `1.1.1`, `1.1.2`, etc.
-
-### Task Status Values
-
-- `pending` - Ready to work on
-- `in-progress` - Currently being worked on
-- `done` - Completed and verified
-- `deferred` - Postponed
-- `cancelled` - No longer needed
-- `blocked` - Waiting on external factors
-
-### Task Fields
-
-```json
-{
-  "id": "1.2",
-  "title": "Implement user authentication",
-  "description": "Set up JWT-based auth system",
-  "status": "pending",
-  "priority": "high",
-  "dependencies": ["1.1"],
-  "details": "Use bcrypt for hashing, JWT for tokens...",
-  "testStrategy": "Unit tests for auth functions, integration tests for login flow",
-  "subtasks": []
-}
-```
-
-## Claude Code Best Practices with Task Master
-
-### Context Management
-
-- Use `/clear` between different tasks to maintain focus
-- This CLAUDE.md file is automatically loaded for context
-- Use `task-master show <id>` to pull specific task context when needed
-
-### Iterative Implementation
-
-1. `task-master show <subtask-id>` - Understand requirements
-2. Explore codebase and plan implementation
-3. `task-master update-subtask --id=<id> --prompt="detailed plan"` - Log plan
-4. `task-master set-status --id=<id> --status=in-progress` - Start work
-5. Implement code following logged plan
-6. `task-master update-subtask --id=<id> --prompt="what worked/didn't work"` - Log progress
-7. `task-master set-status --id=<id> --status=done` - Complete task
-
-### Complex Workflows with Checklists
-
-For large migrations or multi-step processes:
-
-1. Create a markdown PRD file describing the new changes: `touch task-migration-checklist.md` (prds can be .txt or .md)
-2. Use Taskmaster to parse the new prd with `task-master parse-prd --append` (also available in MCP)
-3. Use Taskmaster to expand the newly generated tasks into subtasks. Consdier using `analyze-complexity` with the correct --to and --from IDs (the new ids) to identify the ideal subtask amounts for each task. Then expand them.
-4. Work through items systematically, checking them off as completed
-5. Use `task-master update-subtask` to log progress on each task/subtask and/or updating/researching them before/during implementation if getting stuck
-
-### Git Integration
-
-Task Master works well with `gh` CLI:
-
-```bash
-# Create PR for completed task
-gh pr create --title "Complete task 1.2: User authentication" --body "Implements JWT auth system as specified in task 1.2"
-
-# Reference task in commits
-git commit -m "feat: implement JWT auth (task 1.2)"
-```
-
-### Parallel Development with Git Worktrees
-
-```bash
-# Create worktrees for parallel task development
-git worktree add ../project-auth feature/auth-system
-git worktree add ../project-api feature/api-refactor
-
-# Run Claude Code in each worktree
-cd ../project-auth && claude    # Terminal 1: Auth work
-cd ../project-api && claude     # Terminal 2: API work
-```
+4. **Deployment Testing**:
+   - Test Railway preview deployment
+   - Verify environment variables are set correctly
+   - Check logs for API middleware functionality
 
 ## Troubleshooting
 
-### AI Commands Failing
+### Common Issues
 
+**Railway 502 Errors**:
+- Check Node.js version (requires >=20)
+- Verify `railway.json` uses `npm run preview`
+- Ensure Vite preview configuration includes Railway hosts
+
+**Authentication Failures**:
+- Check BetterAuth environment variables
+- Verify database connection and tables exist
+- Look for `isBrowser` checks preventing server-side auth
+
+**API Route 404/405 Errors**:
+- Confirm Vite middleware is running (dev server logs)
+- Check API route patterns in `src/api/index.ts`
+- Verify method handling in route handlers
+
+**Database Connection Issues**:
+- Confirm `DATABASE_URL` format includes SSL mode
+- Test connection using Railway PostgreSQL console
+- Check for connection pool exhaustion
+
+### Migration Cleanup
+
+If encountering Supabase-related errors:
 ```bash
-# Check API keys are configured
-cat .env                           # For CLI usage
+# Search for remaining Supabase references
+grep -r "supabase" src/ --exclude-dir=node_modules
+grep -r "createClient" src/ --exclude-dir=node_modules
 
-# Verify model configuration
-task-master models
-
-# Test with different model
-task-master models --set-fallback gpt-4o-mini
+# Remove any remaining Supabase imports
+# Replace with DatabaseService calls
 ```
 
-### MCP Connection Issues
+## File Location Reference
 
-- Check `.mcp.json` configuration
-- Verify Node.js installation
-- Use `--mcp-debug` flag when starting Claude Code
-- Use CLI as fallback if MCP unavailable
-
-### Task File Sync Issues
-
-```bash
-# Regenerate task files from tasks.json
-task-master generate
-
-# Fix dependency issues
-task-master fix-dependencies
-```
-
-DO NOT RE-INITIALIZE. That will not do anything beyond re-adding the same Taskmaster core files.
-
-## Important Notes
-
-### AI-Powered Operations
-
-These commands make AI calls and may take up to a minute:
-
-- `parse_prd` / `task-master parse-prd`
-- `analyze_project_complexity` / `task-master analyze-complexity`
-- `expand_task` / `task-master expand`
-- `expand_all` / `task-master expand --all`
-- `add_task` / `task-master add-task`
-- `update` / `task-master update`
-- `update_task` / `task-master update-task`
-- `update_subtask` / `task-master update-subtask`
-
-### File Management
-
-- Never manually edit `tasks.json` - use commands instead
-- Never manually edit `.taskmaster/config.json` - use `task-master models`
-- Task markdown files in `tasks/` are auto-generated
-- Run `task-master generate` after manual changes to tasks.json
-
-### Claude Code Session Management
-
-- Use `/clear` frequently to maintain focused context
-- Create custom slash commands for repeated Task Master workflows
-- Configure tool allowlist to streamline permissions
-- Use headless mode for automation: `claude -p "task-master next"`
-
-### Multi-Task Updates
-
-- Use `update --from=<id>` to update multiple future tasks
-- Use `update-task --id=<id>` for single task updates
-- Use `update-subtask --id=<id>` for implementation logging
-
-### Research Mode
-
-- Add `--research` flag for research-based AI enhancement
-- Requires a research model API key like Perplexity (`PERPLEXITY_API_KEY`) in environment
-- Provides more informed task creation and updates
-- Recommended for complex technical tasks
-
----
-
-_This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
+**Authentication**: `src/lib/better-auth-server.ts`, `src/api/auth/`
+**Database**: `src/lib/database.ts`, `src/lib/database-service.ts`  
+**API Routes**: `src/api/index.ts` and subdirectories
+**Components**: `src/components/` organized by feature
+**Types**: `src/types/index.ts` for core types
+**Migration**: `railway-migration/` for database setup
+**Scripts**: `scripts/` for database and admin account creation

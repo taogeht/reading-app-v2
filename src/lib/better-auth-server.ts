@@ -2,7 +2,6 @@
 // This handles the actual authentication logic server-side
 
 import { betterAuth } from "better-auth";
-import { pool } from "./database";
 
 // Check if we're in browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -16,13 +15,14 @@ export const auth = isBrowser ? null : betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    sendEmailVerificationOnSignUp: false,
   },
   user: {
     additionalFields: {
       username: {
         type: "string",
         required: false,
-        unique: true,
+        unique: false, // Allow non-unique for flexibility
       },
       full_name: {
         type: "string", 
@@ -32,9 +32,6 @@ export const auth = isBrowser ? null : betterAuth({
         type: "string",
         required: true,
         defaultValue: "student",
-        validate: (value: string) => {
-          return ["student", "teacher", "admin"].includes(value);
-        },
       },
       class_id: {
         type: "string",
@@ -47,12 +44,13 @@ export const auth = isBrowser ? null : betterAuth({
     updateAge: 60 * 60 * 24, // 24 hours
   },
   secret: process.env.BETTER_AUTH_SECRET!,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
+  baseURL: process.env.BETTER_AUTH_URL || "https://reading-app-v2-production.up.railway.app",
   trustedOrigins: [
+    "https://reading-app-v2-production.up.railway.app",
     "http://localhost:5173", 
     "http://localhost:3000",
     "http://localhost:5174", // Vite preview port
-    process.env.BETTER_AUTH_URL || "http://localhost:5173"
+    process.env.BETTER_AUTH_URL || "https://reading-app-v2-production.up.railway.app"
   ].filter(Boolean),
 });
 
