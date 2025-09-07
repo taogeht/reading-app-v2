@@ -802,6 +802,32 @@ export class DatabaseService {
       return null;
     }
   }
+
+  // Update user password (for existing accounts)
+  static async updateUserPassword(email: string, newPassword: string): Promise<boolean> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.updateUserPassword not available - pool not ready');
+      return false;
+    }
+
+    try {
+      // Hash the new password
+      const password_hash = await this.hashPassword(newPassword);
+
+      const result = await pool.query(
+        `UPDATE profiles 
+         SET password_hash = $1, updated_at = NOW()
+         WHERE email = $2`,
+        [password_hash, email]
+      );
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error updating user password:', error);
+      return false;
+    }
+  }
 }
 
 // Export types
