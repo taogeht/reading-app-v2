@@ -89,6 +89,44 @@ export const profileService = {
     return [];
   },
 
+  async getStudentsByClass(classId: string): Promise<UserProfile[]> {
+    console.warn('profileService.getStudentsByClass not implemented - using mock');
+    return [];
+  },
+
+  async checkTeacherAuthStatus(teacherId: string): Promise<any> {
+    console.warn('profileService.checkTeacherAuthStatus not implemented - using mock');
+    return { hasAuth: false };
+  },
+
+  async deleteTeacher(teacherId: string): Promise<void> {
+    console.warn('profileService.deleteTeacher not implemented - using mock');
+  },
+
+  async deleteStudent(studentId: string): Promise<void> {
+    console.warn('profileService.deleteStudent not implemented - using mock');
+  },
+
+  async resetTeacherPassword(teacherId: string): Promise<any> {
+    console.warn('profileService.resetTeacherPassword not implemented - using mock');
+    return { success: true };
+  },
+
+  async repairOrphanedTeacherProfile(teacherId: string): Promise<any> {
+    console.warn('profileService.repairOrphanedTeacherProfile not implemented - using mock');
+    return { success: true };
+  },
+
+  async updateTeacher(teacherId: string, updates: any): Promise<UserProfile> {
+    console.warn('profileService.updateTeacher not implemented - using mock');
+    return this.update(teacherId, updates);
+  },
+
+  async updateStudent(studentId: string, updates: any): Promise<UserProfile> {
+    console.warn('profileService.updateStudent not implemented - using mock');
+    return this.update(studentId, updates);
+  },
+
   async create(profile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> {
     console.warn('profileService.create not implemented - using mock');
     return {
@@ -127,6 +165,11 @@ export const profileService = {
 export const classService = {
   async getAll(): Promise<Class[]> {
     console.warn('classService.getAll not implemented - using mock');
+    return [];
+  },
+
+  async getClasses(): Promise<Class[]> {
+    console.warn('classService.getClasses not implemented - using mock');
     return [];
   },
 
@@ -173,6 +216,10 @@ export const classService = {
 
   async delete(id: string): Promise<void> {
     console.warn('classService.delete not implemented - using mock');
+  },
+
+  async deleteClass(classId: string): Promise<void> {
+    console.warn('classService.deleteClass not implemented - using mock');
   }
 };
 
@@ -180,6 +227,11 @@ export const classService = {
 export const assignmentService = {
   async getAll(): Promise<Assignment[]> {
     console.warn('assignmentService.getAll not implemented - using mock');
+    return [];
+  },
+
+  async getAssignments(): Promise<Assignment[]> {
+    console.warn('assignmentService.getAssignments not implemented - using mock');
     return [];
   },
 
@@ -241,6 +293,11 @@ export const assignmentService = {
 export const recordingService = {
   async getAll(): Promise<Recording[]> {
     console.warn('recordingService.getAll not implemented - using mock');
+    return [];
+  },
+
+  async getRecordings(): Promise<Recording[]> {
+    console.warn('recordingService.getRecordings not implemented - using mock');
     return [];
   },
 
