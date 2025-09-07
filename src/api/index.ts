@@ -140,6 +140,11 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 
     // Route to appropriate handlers
     switch (resource) {
+      case 'ping':
+        return new Response(
+          JSON.stringify(createApiResponse({ message: 'pong', timestamp: new Date().toISOString() }, null, 200)),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
       case 'health':
         return await handleHealthRequest(apiRequest);
       case 'auth':
