@@ -140,6 +140,8 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 
     // Route to appropriate handlers
     switch (resource) {
+      case 'health':
+        return await handleHealthRequest(apiRequest);
       case 'auth':
         return await handleAuthRequest(apiRequest);
       case 'users':
@@ -174,6 +176,66 @@ import { handleClassesRequest as classesHandler } from './classes/index';
 import { handleRecordingsRequest as recordingsHandler } from './recordings/index';
 
 // Route handlers
+async function handleHealthRequest(request: ApiRequest): Promise<Response> {
+  try {
+    console.log('🏥 Health check requested');
+    
+    // Check BetterAuth status
+    const { isAuthAvailable, getAuthError } = await import('../lib/better-auth-server');
+    const authStatus = isAuthAvailable();
+    const authError = getAuthError();
+    
+    // Try a basic database connection test
+    let dbStatus = 'unknown';
+    let dbError = null;
+    try {
+      const pg = await import('pg');
+      const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      const client = new pg.Client(dbUrl);
+      await client.connect();
+      await client.query('SELECT NOW()');
+      await client.end();
+      dbStatus = 'connected';
+    } catch (error) {
+      dbStatus = 'failed';
+      dbError = error.message;
+    }
+
+    const healthData = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasAuthSecret: !!process.env.BETTER_AUTH_SECRET,
+      },
+      services: {
+        betterauth: {
+          available: authStatus,
+          error: authError?.message || null
+        },
+        database: {
+          status: dbStatus,
+          error: dbError
+        }
+      }
+    };
+
+    console.log('🏥 Health check response:', JSON.stringify(healthData, null, 2));
+
+    return new Response(
+      JSON.stringify(createApiResponse(healthData, null, 200, 'Health check completed')),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('🏥 Health check failed:', error);
+    return new Response(
+      JSON.stringify(createApiResponse(null, `Health check failed: ${error.message}`, 500)),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
 async function handleAuthRequest(request: ApiRequest): Promise<Response> {
   return await authHandler(request);
 }
