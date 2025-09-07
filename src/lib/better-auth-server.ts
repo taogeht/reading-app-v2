@@ -7,8 +7,8 @@ import { pool } from "./database";
 // Check if we're in browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Create BetterAuth instance only on server side - temporarily disabled for deployment debugging
-export const auth = null; /* isBrowser ? null : betterAuth({
+// Create BetterAuth instance only on server side
+export const auth = isBrowser ? null : betterAuth({
   database: {
     provider: "pg",
     url: process.env.DATABASE_URL!,
@@ -54,12 +54,18 @@ export const auth = null; /* isBrowser ? null : betterAuth({
     "http://localhost:5174", // Vite preview port
     process.env.BETTER_AUTH_URL || "http://localhost:5173"
   ].filter(Boolean),
-}); */
+});
 
-// Export auth handlers for API routes - temporarily disabled
-export const { GET, POST } = { GET: null, POST: null }; // auth?.handler || { GET: null, POST: null };
+// Export auth handlers for API routes
+export const { GET, POST } = auth?.handler || { GET: null, POST: null };
 
-// Helper function to get auth instance (with null check) - temporarily disabled
+// Helper function to get auth instance (with null check)
 export function getAuth() {
-  throw new Error('BetterAuth temporarily disabled for deployment debugging');
+  if (isBrowser) {
+    throw new Error('BetterAuth server instance should not be accessed in browser');
+  }
+  if (!auth) {
+    throw new Error('BetterAuth instance not initialized');
+  }
+  return auth;
 }

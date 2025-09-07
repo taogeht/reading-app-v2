@@ -38,30 +38,14 @@ export interface UserSession {
 
 // Handle authentication requests
 export async function handleAuthRequest(request: ApiRequest): Promise<Response> {
+  console.log('Auth request received:', request.method, request.url);
+  console.log('Full request object:', JSON.stringify(request, null, 2));
   const pathParts = request.url.split('/').filter(Boolean);
   const endpoint = pathParts[pathParts.length - 1];
+  console.log('Path parts:', pathParts);
+  console.log('Auth endpoint:', endpoint, 'Method:', request.method);
 
-  // First try BetterAuth's built-in handler
-  try {
-    const auth = getAuth();
-    if (auth) {
-      // Convert ApiRequest back to Web API Request for BetterAuth
-      const webRequest = new Request(`http://localhost${request.url}`, {
-        method: request.method,
-        headers: request.headers,
-        body: request.body ? JSON.stringify(request.body) : undefined
-      });
-
-      const response = await auth.handler(webRequest);
-      if (response.ok || response.status !== 404) {
-        return response;
-      }
-    }
-  } catch (error) {
-    console.warn('BetterAuth handler not available, using custom handlers:', error.message);
-  }
-
-  // Fall back to custom handlers
+  // Use custom handlers directly for now
   switch (request.method) {
     case 'POST':
       switch (endpoint) {
@@ -74,6 +58,7 @@ export async function handleAuthRequest(request: ApiRequest): Promise<Response> 
         case 'forgot-password':
           return await handleForgotPassword(request);
         default:
+          console.log('Unknown POST endpoint:', endpoint);
           return new Response(
             JSON.stringify(createApiResponse(null, 'Auth endpoint not found', 404)),
             { status: 404, headers: { 'Content-Type': 'application/json' } }

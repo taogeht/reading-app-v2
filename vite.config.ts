@@ -31,6 +31,8 @@ export default defineConfig({
               headers: req.headers as HeadersInit,
               body: body || undefined,
             });
+            
+            console.log('Vite middleware - Request:', req.method, url.pathname);
 
             const response = await handleApiRequest(request);
             

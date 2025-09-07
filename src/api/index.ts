@@ -105,6 +105,8 @@ export async function handleApiRequest(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url);
     const method = request.method;
+    console.log('API request:', method, url.pathname);
+    
     const headers: Record<string, string> = {};
     
     // Convert Headers to plain object
@@ -116,20 +118,25 @@ export async function handleApiRequest(request: Request): Promise<Response> {
     if (method !== 'GET' && method !== 'HEAD') {
       try {
         body = await request.json();
+        console.log('Request body:', body);
       } catch {
         // Body might not be JSON, that's ok
+        console.log('No JSON body or failed to parse');
       }
     }
 
     const apiRequest = parseApiRequest(url.href, method, headers, body);
     const pathParts = url.pathname.split('/').filter(Boolean);
+    console.log('Path parts:', pathParts);
     
     // Remove 'api' from path
     if (pathParts[0] === 'api') {
       pathParts.shift();
     }
+    console.log('Path parts after removing api:', pathParts);
 
     const [resource, id, subResource] = pathParts;
+    console.log('Routing to resource:', resource, 'with id:', id, 'subResource:', subResource);
 
     // Route to appropriate handlers
     switch (resource) {
