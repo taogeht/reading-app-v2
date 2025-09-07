@@ -4,6 +4,7 @@
 import { pool } from './database';
 import { UserSession } from '../api/auth/index';
 import { VisualPassword } from '../api/visual-passwords/index';
+import { Assignment } from '../api/assignments/index';
 import bcrypt from 'bcrypt';
 
 export interface DatabaseUserProfile {
@@ -1013,7 +1014,209 @@ export class DatabaseService {
       return false;
     }
   }
+
+  // Assignment methods
+  static async getAllAssignments(): Promise<Assignment[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getAllAssignments not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(`
+        SELECT id, title, description, story_id, story_title, class_id, teacher_id, 
+               due_date, instructions, max_attempts, is_published, created_at, updated_at
+        FROM assignments 
+        ORDER BY created_at DESC
+      `);
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting all assignments:', error);
+      return [];
+    }
+  }
+
+  static async getAssignmentsByTeacher(teacherId: string): Promise<Assignment[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getAssignmentsByTeacher not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(`
+        SELECT id, title, description, story_id, story_title, class_id, teacher_id, 
+               due_date, instructions, max_attempts, is_published, created_at, updated_at
+        FROM assignments 
+        WHERE teacher_id = $1
+        ORDER BY created_at DESC
+      `, [teacherId]);
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting assignments by teacher:', error);
+      return [];
+    }
+  }
+
+  static async getAssignmentsByClass(classId: string): Promise<Assignment[]> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getAssignmentsByClass not available - pool not ready');
+      return [];
+    }
+
+    try {
+      const result = await pool.query(`
+        SELECT id, title, description, story_id, story_title, class_id, teacher_id, 
+               due_date, instructions, max_attempts, is_published, created_at, updated_at
+        FROM assignments 
+        WHERE class_id = $1 AND is_published = true
+        ORDER BY created_at DESC
+      `, [classId]);
+
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting assignments by class:', error);
+      return [];
+    }
+  }
+
+  static async getAssignmentById(id: string): Promise<Assignment | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.getAssignmentById not available - pool not ready');
+      return null;
+    }
+
+    try {
+      const result = await pool.query(`
+        SELECT id, title, description, story_id, story_title, class_id, teacher_id, 
+               due_date, instructions, max_attempts, is_published, created_at, updated_at
+        FROM assignments 
+        WHERE id = $1
+      `, [id]);
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error getting assignment by ID:', error);
+      return null;
+    }
+  }
+
+  static async createAssignment(assignmentData: {
+    title: string;
+    description?: string | null;
+    story_id: string;
+    story_title: string;
+    class_id: string;
+    teacher_id: string;
+    due_date?: string | null;
+    instructions?: string | null;
+    max_attempts: number;
+    is_published: boolean;
+  }): Promise<Assignment | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.createAssignment not available - pool not ready');
+      return null;
+    }
+
+    try {
+      const result = await pool.query(`
+        INSERT INTO assignments (
+          title, description, story_id, story_title, class_id, teacher_id,
+          due_date, instructions, max_attempts, is_published,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        RETURNING id, title, description, story_id, story_title, class_id, teacher_id, 
+                 due_date, instructions, max_attempts, is_published, created_at, updated_at
+      `, [
+        assignmentData.title,
+        assignmentData.description,
+        assignmentData.story_id,
+        assignmentData.story_title,
+        assignmentData.class_id,
+        assignmentData.teacher_id,
+        assignmentData.due_date,
+        assignmentData.instructions,
+        assignmentData.max_attempts,
+        assignmentData.is_published
+      ]);
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      return null;
+    }
+  }
+
+  static async updateAssignment(id: string, updates: {
+    title?: string;
+    description?: string | null;
+    due_date?: string | null;
+    instructions?: string | null;
+    max_attempts?: number;
+    is_published?: boolean;
+  }): Promise<Assignment | null> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.updateAssignment not available - pool not ready');
+      return null;
+    }
+
+    try {
+      const setFields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+          setFields.push(`${key} = $${paramIndex}`);
+          values.push(value);
+          paramIndex++;
+        }
+      }
+
+      if (setFields.length === 0) {
+        return await this.getAssignmentById(id);
+      }
+
+      values.push(id);
+      const query = `
+        UPDATE assignments 
+        SET ${setFields.join(', ')}, updated_at = NOW()
+        WHERE id = $${paramIndex}
+        RETURNING id, title, description, story_id, story_title, class_id, teacher_id, 
+                 due_date, instructions, max_attempts, is_published, created_at, updated_at
+      `;
+
+      const result = await pool.query(query, values);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      return null;
+    }
+  }
+
+  static async deleteAssignment(id: string): Promise<boolean> {
+    const poolAvailable = await waitForPool();
+    if (!poolAvailable) {
+      console.warn('DatabaseService.deleteAssignment not available - pool not ready');
+      return false;
+    }
+
+    try {
+      const result = await pool.query(`DELETE FROM assignments WHERE id = $1`, [id]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  }
 }
 
 // Export types
-export type { DatabaseUserProfile, ClassInfo, Recording };
+export type { DatabaseUserProfile, ClassInfo, Recording, Assignment };

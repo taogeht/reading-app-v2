@@ -348,69 +348,202 @@ export const classService = {
   }
 };
 
-// Mock assignment service
+// Assignment service with real API calls
 export const assignmentService = {
   async getAll(): Promise<Assignment[]> {
-    console.warn('assignmentService.getAll not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch('/api/assignments', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get assignments:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      return [];
+    }
   },
 
   async getAssignments(): Promise<Assignment[]> {
-    console.warn('assignmentService.getAssignments not implemented - using mock');
-    return [];
+    return this.getAll();
+  },
+
+  async getAssignmentsByTeacher(teacherId: string): Promise<Assignment[]> {
+    try {
+      const response = await fetch(`/api/assignments?teacher_id=${teacherId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get assignments by teacher:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching assignments by teacher:', error);
+      return [];
+    }
   },
 
   async getById(id: string): Promise<Assignment | null> {
-    console.warn('assignmentService.getById not implemented - using mock');
-    return null;
+    try {
+      const response = await fetch(`/api/assignments/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data;
+      } else {
+        console.error('Failed to get assignment:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching assignment:', error);
+      return null;
+    }
   },
 
   async getByClass(classId: string): Promise<Assignment[]> {
-    console.warn('assignmentService.getByClass not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch(`/api/assignments?class_id=${classId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get assignments by class:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching assignments by class:', error);
+      return [];
+    }
   },
 
-  async create(assignment: Omit<Assignment, 'id' | 'created_at' | 'updated_at'>): Promise<Assignment> {
-    console.warn('assignmentService.create not implemented - using mock');
-    return {
-      id: 'mock-assignment-id',
-      title: assignment.title,
-      description: assignment.description,
-      story_id: assignment.story_id,
-      story_title: assignment.story_title,
-      class_id: assignment.class_id,
-      teacher_id: assignment.teacher_id,
-      due_date: assignment.due_date,
-      instructions: assignment.instructions,
-      max_attempts: assignment.max_attempts,
-      is_published: assignment.is_published,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  async createAssignment(assignmentData: {
+    title: string;
+    description?: string;
+    story_id: string;
+    story_title: string;
+    class_id: string;
+    teacher_id: string;
+    due_date?: string;
+    instructions?: string;
+    max_attempts?: number;
+  }): Promise<{ data?: Assignment; error?: { message: string } }> {
+    try {
+      const response = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...assignmentData,
+          max_attempts: assignmentData.max_attempts || 3,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.status === 201) {
+        return { data: result.data };
+      } else {
+        console.error('Failed to create assignment:', result.error);
+        return { error: { message: result.error || 'Failed to create assignment' } };
+      }
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      return { error: { message: error instanceof Error ? error.message : 'Unknown error' } };
+    }
   },
 
-  async update(id: string, updates: Partial<Assignment>): Promise<Assignment> {
-    console.warn('assignmentService.update not implemented - using mock');
-    return {
-      id,
-      title: 'Mock Assignment',
-      description: null,
-      story_id: 'mock-story',
-      story_title: 'Mock Story',
-      class_id: 'mock-class',
-      teacher_id: 'mock-teacher',
-      due_date: null,
-      instructions: null,
-      max_attempts: 3,
-      is_published: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...updates,
-    };
+  async publishAssignment(id: string): Promise<{ error?: { message: string } }> {
+    try {
+      const response = await fetch(`/api/assignments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ is_published: true }),
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return {};
+      } else {
+        console.error('Failed to publish assignment:', result.error);
+        return { error: { message: result.error || 'Failed to publish assignment' } };
+      }
+    } catch (error) {
+      console.error('Error publishing assignment:', error);
+      return { error: { message: error instanceof Error ? error.message : 'Unknown error' } };
+    }
   },
 
+  async update(id: string, updates: Partial<Assignment>): Promise<Assignment | null> {
+    try {
+      const response = await fetch(`/api/assignments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data;
+      } else {
+        console.error('Failed to update assignment:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      return null;
+    }
+  },
+
+  async deleteAssignment(id: string): Promise<{ error?: { message: string } }> {
+    try {
+      const response = await fetch(`/api/assignments/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return {};
+      } else {
+        console.error('Failed to delete assignment:', result.error);
+        return { error: { message: result.error || 'Failed to delete assignment' } };
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return { error: { message: error instanceof Error ? error.message : 'Unknown error' } };
+    }
+  },
+
+  // Legacy method for compatibility
   async delete(id: string): Promise<void> {
-    console.warn('assignmentService.delete not implemented - using mock');
+    const result = await this.deleteAssignment(id);
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
   }
 };
 

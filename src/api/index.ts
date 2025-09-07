@@ -189,6 +189,7 @@ import { handleUsersRequest as usersHandler } from './users/index';
 import { handleVisualPasswordsRequest as visualPasswordsHandler } from './visual-passwords/index';
 import { handleClassesRequest as classesHandler } from './classes/index';
 import { handleRecordingsRequest as recordingsHandler } from './recordings/index';
+import { handleAssignmentRequest as assignmentsHandler } from './assignments/index';
 
 // Route handlers
 async function handleHealthRequest(request: ApiRequest): Promise<Response> {
@@ -262,11 +263,7 @@ async function handleClassesRequest(request: ApiRequest, id?: string, subResourc
 }
 
 async function handleAssignmentsRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
-  // TODO: Implement in separate assignments routes file
-  return new Response(
-    JSON.stringify(createApiResponse(null, 'Assignments endpoints not implemented yet', 501)),
-    { status: 501, headers: { 'Content-Type': 'application/json' } }
-  );
+  return await assignmentsHandler(request);
 }
 
 async function handleRecordingsRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
