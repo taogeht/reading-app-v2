@@ -188,62 +188,137 @@ export const profileService = {
 // Mock class service
 export const classService = {
   async getAll(): Promise<Class[]> {
-    console.warn('classService.getAll not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch('/api/classes', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get classes:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      return [];
+    }
   },
 
   async getClasses(): Promise<Class[]> {
-    console.warn('classService.getClasses not implemented - using mock');
-    return [];
+    return this.getAll();
   },
 
   async getById(id: string): Promise<Class | null> {
-    console.warn('classService.getById not implemented - using mock');
-    return null;
+    try {
+      const response = await fetch(`/api/classes/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data;
+      } else {
+        console.error('Failed to get class:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching class:', error);
+      return null;
+    }
   },
 
   async getByTeacher(teacherId: string): Promise<Class[]> {
-    console.warn('classService.getByTeacher not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch(`/api/classes?teacher_id=${teacherId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get classes by teacher:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching classes by teacher:', error);
+      return [];
+    }
   },
 
   async create(classData: Omit<Class, 'id' | 'created_at' | 'updated_at'>): Promise<Class> {
-    console.warn('classService.create not implemented - using mock');
-    return {
-      id: 'mock-class-id',
-      name: classData.name,
-      grade_level: classData.grade_level,
-      teacher_id: classData.teacher_id,
-      school_year: classData.school_year,
-      description: classData.description,
-      is_active: classData.is_active,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch('/api/classes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(classData),
+      });
+
+      const result = await response.json();
+      if (result.status === 201) {
+        return result.data;
+      } else {
+        console.error('Failed to create class:', result.error);
+        throw new Error(result.error || 'Failed to create class');
+      }
+    } catch (error) {
+      console.error('Error creating class:', error);
+      throw error;
+    }
   },
 
   async update(id: string, updates: Partial<Class>): Promise<Class> {
-    console.warn('classService.update not implemented - using mock');
-    return {
-      id,
-      name: 'Mock Class',
-      grade_level: 1,
-      teacher_id: 'mock-teacher',
-      school_year: null,
-      description: null,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...updates,
-    };
+    try {
+      const response = await fetch(`/api/classes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data;
+      } else {
+        console.error('Failed to update class:', result.error);
+        throw new Error(result.error || 'Failed to update class');
+      }
+    } catch (error) {
+      console.error('Error updating class:', error);
+      throw error;
+    }
   },
 
   async delete(id: string): Promise<void> {
-    console.warn('classService.delete not implemented - using mock');
+    try {
+      const response = await fetch(`/api/classes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status !== 200) {
+        console.error('Failed to delete class:', result.error);
+        throw new Error(result.error || 'Failed to delete class');
+      }
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      throw error;
+    }
   },
 
   async deleteClass(classId: string): Promise<void> {
-    console.warn('classService.deleteClass not implemented - using mock');
+    return this.delete(classId);
   }
 };
 

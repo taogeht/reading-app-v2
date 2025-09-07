@@ -258,7 +258,7 @@ async function handleUsersRequest(request: ApiRequest, id?: string, subResource?
 }
 
 async function handleClassesRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
-  return await classesHandler(request);
+  return await classesHandler(request, id, subResource);
 }
 
 async function handleAssignmentsRequest(request: ApiRequest, id?: string, subResource?: string): Promise<Response> {
