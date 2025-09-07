@@ -1,7 +1,7 @@
 // Change password for existing admin account
 // Run with: node change-admin-password.js
 
-import { DatabaseService } from './src/lib/database-service.js';
+import { DatabaseService } from './src/lib/database-service.ts';
 import { createInterface } from 'readline';
 
 // Function to read password securely (hidden input)

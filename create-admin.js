@@ -1,7 +1,7 @@
 // Create admin account with secure password input
 // Run with: node create-admin.js
 
-import { DatabaseService } from './src/lib/database-service.js';
+import { DatabaseService } from './src/lib/database-service.ts';
 import { createInterface } from 'readline';
 
 // Function to read password securely (hidden input)
