@@ -182,7 +182,7 @@ async function handleHealthRequest(request: ApiRequest): Promise<Response> {
     
     // Check BetterAuth status
     const { isAuthAvailable, getAuthError } = await import('../lib/better-auth-server');
-    const authStatus = isAuthAvailable();
+    const authStatus = await isAuthAvailable();
     const authError = getAuthError();
     
     // Try a basic database connection test

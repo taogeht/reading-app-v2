@@ -6,11 +6,19 @@ import { betterAuth } from "better-auth";
 // Check if we're in browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Initialize BetterAuth with error handling
+// Initialize BetterAuth with error handling - LAZY INITIALIZATION
 let auth = null;
 let authError = null;
+let isInitialized = false;
 
-if (!isBrowser) {
+// Lazy initialization function
+async function initializeBetterAuth() {
+  if (isInitialized || isBrowser) {
+    return;
+  }
+  
+  isInitialized = true;
+  
   try {
     console.log('🔐 Initializing BetterAuth server...');
     console.log('Available environment variables:', Object.keys(process.env).filter(key => 
@@ -130,14 +138,20 @@ if (!isBrowser) {
 
 export { auth };
 
-// Export auth handlers for API routes
-export const { GET, POST } = auth?.handler || { GET: null, POST: null };
+// Export auth handlers for API routes (lazy initialization)
+export async function getAuthHandlers() {
+  await initializeBetterAuth();
+  return auth?.handler || { GET: null, POST: null };
+}
 
-// Helper function to get auth instance (with null check)
-export function getAuth() {
+// Helper function to get auth instance (with lazy initialization)
+export async function getAuth() {
   if (isBrowser) {
     throw new Error('BetterAuth server instance should not be accessed in browser');
   }
+  
+  await initializeBetterAuth();
+  
   if (!auth) {
     const errorMessage = authError 
       ? `BetterAuth failed to initialize: ${authError.message}`
@@ -147,9 +161,14 @@ export function getAuth() {
   return auth;
 }
 
-// Helper function to check if auth is available
-export function isAuthAvailable(): boolean {
-  return !isBrowser && auth !== null;
+// Helper function to check if auth is available (with lazy initialization)
+export async function isAuthAvailable(): Promise<boolean> {
+  if (isBrowser) {
+    return false;
+  }
+  
+  await initializeBetterAuth();
+  return auth !== null;
 }
 
 // Get initialization error if any

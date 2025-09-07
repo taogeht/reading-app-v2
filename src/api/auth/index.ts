@@ -41,7 +41,8 @@ export async function handleAuthRequest(request: ApiRequest): Promise<Response> 
   console.log('🔐 Auth request received:', request.method, request.url);
   
   // Check BetterAuth availability and report status
-  if (!isAuthAvailable()) {
+  const authAvailable = await isAuthAvailable();
+  if (!authAvailable) {
     const authError = getAuthError();
     console.warn('⚠️ BetterAuth not available:', authError?.message || 'Not initialized');
     console.log('📋 Using fallback authentication handlers');
@@ -50,9 +51,9 @@ export async function handleAuthRequest(request: ApiRequest): Promise<Response> 
   }
   
   // Try BetterAuth's built-in handler if available
-  if (isAuthAvailable()) {
+  if (authAvailable) {
     try {
-      const auth = getAuth();
+      const auth = await getAuth();
       
       // Convert ApiRequest back to Web API Request for BetterAuth
       const headers = new Headers();
@@ -173,9 +174,9 @@ async function handleSignUp(request: ApiRequest): Promise<Response> {
     }
 
     // For email/password users, create through BetterAuth if available
-    if (body.password && isAuthAvailable()) {
+    if (body.password && authAvailable) {
       try {
-        const auth = getAuth();
+        const auth = await getAuth();
         
         console.log('🔄 Creating user through BetterAuth API');
         // Create user through BetterAuth for proper password hashing and session management
@@ -305,9 +306,9 @@ async function handleSignIn(request: ApiRequest): Promise<Response> {
       userProfile = authResult.user;
     } else {
       // Email/password authentication through BetterAuth if available
-      if (isAuthAvailable()) {
+      if (authAvailable) {
         try {
-          const auth = getAuth();
+          const auth = await getAuth();
           
           console.log('🔄 Authenticating through BetterAuth API');
           const authResult = await auth.api.signInEmail({
