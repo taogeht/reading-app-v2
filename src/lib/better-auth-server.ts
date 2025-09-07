@@ -99,8 +99,30 @@ if (!isBrowser) {
     });
     
     console.log('✅ BetterAuth initialized successfully');
+    
+    // Test database connection
+    try {
+      console.log('🔍 Testing database connection...');
+      // Try a simple database query to verify connection
+      const testConnection = await import('pg').then(async (pg) => {
+        const client = new pg.Client(finalDatabaseUrl);
+        await client.connect();
+        const result = await client.query('SELECT NOW() as current_time');
+        await client.end();
+        return result.rows[0];
+      });
+      console.log('✅ Database connection test successful:', testConnection.current_time);
+    } catch (dbError) {
+      console.error('❌ Database connection test failed:', dbError);
+      console.error('Database error details:', dbError.message);
+      console.error('Database error code:', dbError.code);
+      // Don't fail initialization, but log the issue
+    }
+    
   } catch (error) {
     console.error('❌ BetterAuth initialization failed:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     authError = error;
     auth = null;
   }
