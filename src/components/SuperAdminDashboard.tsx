@@ -39,7 +39,7 @@ interface DashboardStats {
 type TabType = 'overview' | 'teachers' | 'classes' | 'students';
 
 export const SuperAdminDashboard: React.FC = () => {
-  const { profile, signOut } = useAuth();
+  const { user: profile, signOut } = useAuth();
   
   // State management
   const [stats, setStats] = useState<DashboardStats>({
