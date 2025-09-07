@@ -117,8 +117,24 @@ export const profileService = {
   },
 
   async getStudentsByClass(classId: string): Promise<UserProfile[]> {
-    console.warn('profileService.getStudentsByClass not implemented - using mock');
-    return [];
+    try {
+      const response = await fetch(`/api/classes/${classId}/students`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      if (result.status === 200) {
+        return result.data || [];
+      } else {
+        console.error('Failed to get students by class:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching students by class:', error);
+      return [];
+    }
   },
 
   async checkTeacherAuthStatus(teacherId: string): Promise<any> {
@@ -150,7 +166,6 @@ export const profileService = {
   },
 
   async updateStudent(studentId: string, updates: any): Promise<UserProfile> {
-    console.warn('profileService.updateStudent not implemented - using mock');
     return this.update(studentId, updates);
   },
 
