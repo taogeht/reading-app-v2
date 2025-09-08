@@ -53,6 +53,7 @@ export class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include', // Send cookies with requests for session auth
       });
 
       let responseData;
@@ -97,13 +98,9 @@ export class ApiClient {
     });
 
     if (response.data && response.status === 200) {
-      // In a real implementation, the API would return a token
-      const mockToken = `auth_token_${Date.now()}`;
-      this.setAuthToken(mockToken);
-      
+      // Session cookie is automatically set by the server
       return { 
-        user: response.data, 
-        token: mockToken 
+        user: response.data
       };
     }
 
@@ -115,8 +112,7 @@ export class ApiClient {
       method: 'POST',
     });
 
-    // Clear token regardless of API response
-    this.clearAuthToken();
+    // Session cookie is automatically cleared by the server
 
     if (response.status === 200) {
       return {};
@@ -126,19 +122,10 @@ export class ApiClient {
   }
 
   async getSession(): Promise<{ user?: UserSession; error?: string }> {
-    if (!this.authToken) {
-      return { error: 'No authentication token' };
-    }
-
     const response = await this.request<UserSession>('/auth/session');
 
     if (response.data && response.status === 200) {
       return { user: response.data };
-    }
-
-    // If session is invalid, clear token
-    if (response.status === 401) {
-      this.clearAuthToken();
     }
 
     return { error: response.error || 'Session invalid' };
