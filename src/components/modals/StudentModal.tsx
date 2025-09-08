@@ -138,7 +138,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
           class_id: formData.class_id,
           visual_password_id: formData.visual_password_id,
           email: `student.${Date.now()}@temp.local`, // Temporary email that won't be used
-          username: null
+          username: `student_${Date.now()}`
         });
       }
 

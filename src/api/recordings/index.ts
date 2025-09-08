@@ -58,17 +58,18 @@ export async function handleRecordingsRequest(request: ApiRequest): Promise<Resp
 
 async function handleGetRecordings(request: ApiRequest): Promise<Response> {
   try {
-    // Get recordings by class ID
-    const classId = request.query?.class_id;
+    const assignmentId = request.query?.assignment_id;
+    const studentId = request.query?.student_id;
     
-    if (!classId) {
-      return new Response(
-        JSON.stringify(createApiResponse(null, 'class_id parameter required', 400)),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    let recordings;
+    
+    if (assignmentId) {
+      recordings = await DatabaseService.getRecordingsByAssignment(assignmentId);
+    } else if (studentId) {
+      recordings = await DatabaseService.getRecordingsByStudent(studentId);
+    } else {
+      recordings = await DatabaseService.getAllRecordings();
     }
-
-    const recordings = await DatabaseService.getRecordingsByClass(classId);
 
     return new Response(
       JSON.stringify(createApiResponse(recordings, null, 200)),
