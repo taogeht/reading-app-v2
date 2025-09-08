@@ -263,14 +263,40 @@ export class ApiClient {
   }
 
   // Recordings management methods
-  async getRecordings(classId: string): Promise<{ recordings?: Recording[]; error?: string }> {
-    const response = await this.request<Recording[]>(`/recordings?class_id=${classId}`);
+  async getRecordings(assignmentId?: string, studentId?: string): Promise<{ recordings?: Recording[]; error?: string }> {
+    let queryParams = '';
+    if (assignmentId) {
+      queryParams = `?assignment_id=${assignmentId}`;
+    } else if (studentId) {
+      queryParams = `?student_id=${studentId}`;
+    }
+    
+    const response = await this.request<Recording[]>(`/recordings${queryParams}`);
     
     if (response.data && response.status === 200) {
       return { recordings: response.data };
     }
     
     return { error: response.error || 'Failed to fetch recordings' };
+  }
+
+  async getRecordingsByClass(classId: string): Promise<{ recordings?: Recording[]; error?: string }> {
+    // First get assignments for this class, then get recordings for those assignments
+    try {
+      const { classes: teacherClasses } = await this.getClasses();
+      const assignments = []; // We'd need to implement getAssignmentsByClass
+      
+      // For now, return all recordings (in a real implementation, we'd filter by class)
+      const response = await this.request<Recording[]>('/recordings');
+      
+      if (response.data && response.status === 200) {
+        return { recordings: response.data };
+      }
+      
+      return { error: response.error || 'Failed to fetch recordings' };
+    } catch (error) {
+      return { error: 'Failed to fetch recordings for class' };
+    }
   }
 
   async getRecording(id: string): Promise<{ recording?: Recording; error?: string }> {

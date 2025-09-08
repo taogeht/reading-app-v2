@@ -82,7 +82,7 @@ export const TeacherDashboard: React.FC = () => {
   const fetchClassRecordings = async (classId: string) => {
     setRefreshing(true);
     try {
-      const result = await apiClient.getRecordings(classId);
+      const result = await apiClient.getRecordingsByClass(classId);
       if (result.error) {
         console.error('Error fetching recordings:', result.error);
       } else {
@@ -155,7 +155,7 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  const copyClassLink = async (classInfo: TeacherClass) => {
+  const copyClassLink = async (classInfo: ClassInfo) => {
     if (!classInfo.access_token) return;
     
     const classLink = `${window.location.origin}/class/${classInfo.access_token}`;

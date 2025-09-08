@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, CheckCircle, AlertCircle, User, LogOut } from 'lucide-react';
+import { BookOpen, User, LogOut } from 'lucide-react';
 import { useStudentAuth } from '../contexts/StudentAuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { StoryManager } from './StoryManager';
 import { VoiceSettings } from './VoiceSettings';
 import { TTSPlayer } from './TTSPlayer';
-import { VoiceRecorder } from './VoiceRecorder';
-import { RecordingUploadService, RecordingMetadata } from '../services/RecordingUploadService';
+import { AudioRecorder } from './AudioRecorder';
 import { Story, VoiceSettings as VoiceSettingsType } from '../types';
 
 export const StudentPractice: React.FC = () => {
@@ -19,8 +18,6 @@ export const StudentPractice: React.FC = () => {
     gender: 'Female',
   });
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
-  const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(null);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [assignmentId, setAssignmentId] = useState<string | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
 
@@ -67,46 +64,9 @@ export const StudentPractice: React.FC = () => {
     navigate('/');
   };
 
-  const handleRecordingSubmit = async (audioBlob: Blob, metadata: RecordingMetadata) => {
-    if (!session?.student_id || !session?.class_id) {
-      setSubmissionError('Session information missing. Please log in again.');
-      return;
-    }
-
-    setSubmissionError(null);
-    setSubmissionSuccess(null);
-
-    try {
-      // Include assignment ID and story text for analysis
-      const recordingMetadata: RecordingMetadata = {
-        ...metadata,
-        storyText: selectedStory?.text, // Include story text for analysis
-        assignmentId: assignmentId || undefined
-      };
-
-      const result = await RecordingUploadService.uploadRecording(
-        audioBlob,
-        recordingMetadata,
-        session.student_id,
-        session.class_id
-      );
-
-      if (result.success) {
-        setSubmissionSuccess(`Recording submitted successfully! Your teacher will review it soon.`);
-        // Clear the success message after 5 seconds
-        setTimeout(() => setSubmissionSuccess(null), 5000);
-      } else {
-        setSubmissionError(result.error || 'Failed to submit recording');
-      }
-    } catch (error) {
-      console.error('Error submitting recording:', error);
-      setSubmissionError('An unexpected error occurred while submitting your recording.');
-    }
-  };
-
-  const handleClearMessages = () => {
-    setSubmissionSuccess(null);
-    setSubmissionError(null);
+  const handleRecordingComplete = (recording: any) => {
+    console.log('Recording completed:', recording);
+    // The AudioRecorder component handles success messages internally
   };
 
   return (
@@ -176,71 +136,13 @@ export const StudentPractice: React.FC = () => {
               onWordHighlight={setHighlightedWordIndex}
             />
 
-            {/* Voice Recorder */}
-            <VoiceRecorder
-              story={selectedStory}
-              onRecordingSubmit={handleRecordingSubmit}
-              highlightedWordIndex={highlightedWordIndex}
+            {/* Audio Recorder */}
+            <AudioRecorder
+              assignmentId={assignmentId || selectedStory.id}
+              studentId={session.student_id}
+              attemptNumber={1}
+              onRecordingComplete={handleRecordingComplete}
             />
-
-            {/* Submission Success Message */}
-            {submissionSuccess && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                  <h3 className="text-xl font-semibold text-green-800">Recording Submitted!</h3>
-                </div>
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                  <p className="text-green-700">{submissionSuccess}</p>
-                </div>
-                <div className="flex justify-center mt-4">
-                  <button
-                    onClick={handleClearMessages}
-                    className="px-4 py-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Submission Error Message */}
-            {submissionError && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <AlertCircle className="h-8 w-8 text-red-600" />
-                  <h3 className="text-xl font-semibold text-red-800">Submission Failed</h3>
-                </div>
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                  <p className="text-red-700">{submissionError}</p>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-4 mb-6">
-                  <h4 className="font-semibold text-blue-800 mb-3">💡 What to try:</h4>
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-2 text-blue-700">
-                      <span className="text-blue-500 mt-1">•</span>
-                      <span className="text-sm">Check your internet connection</span>
-                    </li>
-                    <li className="flex items-start gap-2 text-blue-700">
-                      <span className="text-blue-500 mt-1">•</span>
-                      <span className="text-sm">Try recording and submitting again</span>
-                    </li>
-                    <li className="flex items-start gap-2 text-blue-700">
-                      <span className="text-blue-500 mt-1">•</span>
-                      <span className="text-sm">Contact your teacher if the problem continues</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="flex justify-center gap-3">
-                  <button
-                    onClick={handleClearMessages}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
 
